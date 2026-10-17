@@ -1,0 +1,46 @@
+name: Compile MeshCrowd papers
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Version-with-figures/**'
+      - 'paper-17-Oct/**'
+      - '.github/workflows/compile-paper.yml'
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq texlive-latex-base texlive-latex-recommended texlive-fonts-recommended
+      - name: Compile Version-with-figures
+        run: |
+          cd Version-with-figures
+          pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
+          pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
+          echo "PAGES_VWF=$(pdfinfo MeshCrowd_version_with_figures.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
+          grep -c "Overfull" MeshCrowd_version_with_figures.log || true
+      - name: Compile 17-Oct camera-ready (reference)
+        run: |
+          cd paper-17-Oct
+          pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
+          pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
+          echo "PAGES_CR=$(pdfinfo MeshCrowd_camera_ready.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
+      - name: Report page counts
+        run: |
+          echo "Version-with-figures pages: $PAGES_VWF"
+          echo "17-Oct camera-ready pages: $PAGES_CR"
+      - name: Upload Version-with-figures PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshcrowd-version-with-figures-pdf
+          path: Version-with-figures/MeshCrowd_version_with_figures.pdf
+      - name: Upload compile log
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshcrowd-vwf-log
+          path: Version-with-figures/MeshCrowd_version_with_figures.log

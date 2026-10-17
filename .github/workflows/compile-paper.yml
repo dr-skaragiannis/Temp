@@ -44,3 +44,11 @@ jobs:
         with:
           name: meshcrowd-vwf-log
           path: Version-with-figures/MeshCrowd_version_with_figures.log
+      - name: Commit compiled PDF back to branch
+        run: |
+          git config user.name "Arena CI"
+          git config user.email "ci@arena.ai"
+          git add Version-with-figures/MeshCrowd_version_with_figures.pdf
+          git add Version-with-figures/MeshCrowd_version_with_figures.log
+          git commit -m "CI: compiled Version-with-figures PDF (${{ env.PAGES_VWF }} pages) [skip ci]" || echo "nothing to commit"
+          git push origin HEAD:arena/1ac83396-temp

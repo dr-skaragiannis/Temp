@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "MeshCrowd reproducibility data manifest",
+  "license": "Research and evaluation use; preserve provenance when redistributing.",
+  "provenance": {
+    "application": "MeshCrowd Android build v1.1",
+    "signalEngine": "Production-compatible model implemented in evaluation/src",
+    "sourceClaim": "Website and research manuscript evaluation artefacts",
+    "generatedAt": null,
+    "seed": 20260909
+  },
+  "datasets": [
+    {
+      "id": "fusion",
+      "scenes": 1512,
+      "purpose": "Per-crossing multi-band detection and pedestrian/vehicle typing"
+    },
+    {
+      "id": "ranging",
+      "scenes": 288,
+      "purpose": "dBm-to-metre inversion, -75 dBm gate, and radial band validation"
+    },
+    {
+      "id": "epoch",
+      "scenes": 864,
+      "purpose": "Stable-level scan-epoch change detection versus last-sample comparison"
+    },
+    {
+      "id": "transit",
+      "scenes": 768,
+      "purpose": "Two-node RFCOMM/L2CAP transit detection by separation"
+    },
+    {
+      "id": "mesh",
+      "scenes": 729,
+      "purpose": "Multi-node confirmation, useful radius, false confirmation, and reliability bonus"
+    }
+  ],
+  "totalScenes": 4161,
+  "importantLimit": "This package reproduces the model-based evaluation from the published constants. It is not a substitute for the original phone radio captures, which are not present in this repository."
+}

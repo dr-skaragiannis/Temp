@@ -1,0 +1,4 @@
+participant,task_id,task_name,attempts,success,time_s,correct_ui,help_requested,notes
+P01,1,open app and grant permissions,1,1,42.5,1,0,example row - delete before use
+P01,2,start a sensing session,1,1,11.0,1,0,
+P01,3,read the current crowd estimate off the screen,2,1,28.7,0,1,

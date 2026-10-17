@@ -1,0 +1,92 @@
+{
+  "leg": "B5-forced-doze_1",
+  "battery_source": "battery.csv",
+  "duration_min": 20.0,
+  "soc": {
+    "soc_pct_per_h": 6.0,
+    "span_h": 0.3333,
+    "soc_delta_pct": 2.0,
+    "soc_steps_observed": 2,
+    "quantisation_pct_per_h_per_step": 3.0,
+    "minutes_needed_for_1pp_resolution": 10.0,
+    "n_points": 241,
+    "resolution_note": "ok"
+  },
+  "current": {
+    "mA_discharge": 320.92,
+    "mA_iqr": [
+      309.55,
+      332.08
+    ],
+    "mAh_total": 106.973,
+    "n": 241
+  },
+  "states": {
+    "n_total": 241,
+    "n_screen_on": 0,
+    "n_screen_off": 241,
+    "n_idle": 60,
+    "soc_pct_per_h_screen_on": null,
+    "soc_pct_per_h_screen_off": 6.0,
+    "soc_pct_per_h_idle": 0.0,
+    "temp_c_mean": 29.7,
+    "temp_c_range": [
+      29.6,
+      29.8
+    ]
+  },
+  "cadence": {
+    "note": "no cadence CSV - the app-side logger did not run, so scans/hour is not measured"
+  },
+  "storage": {
+    "source": "storage.csv",
+    "n_rows": 21,
+    "bytes_final": {
+      "files_bytes": 700000,
+      "cache_bytes": 40000,
+      "nobackup_bytes": 0
+    },
+    "log_files_final": 23,
+    "bytes_growth": 188000,
+    "bytes_growth_per_hour": 564000.0,
+    "max_log_bytes": 0,
+    "traffic": null,
+    "traffic_note": "TrafficStats not in this capture (shell sampler does not read them)"
+  },
+  "events": {
+    "note": "no events CSV"
+  },
+  "batterystats": {
+    "estimated_mah_tree": {
+      "screen": 0.0,
+      "app": 6.1,
+      "bluetooth": 1.9,
+      "wifi": 3.4,
+      "uid 10234": 4.81
+    },
+    "uid_fg_bg_mah": null,
+    "wake_lock_seconds": {
+      "u0a234/MeterService": 72.3,
+      "u0a234/WifiManager": 0.0
+    },
+    "time_on_battery_raw": "20m 3s 999ms"
+  },
+  "netstats": {
+    "after": {
+      "10234": [
+        2021,
+        3021
+      ]
+    },
+    "delta": {
+      "10234": [
+        1021,
+        1021
+      ]
+    },
+    "delta_note": "rx,tx bytes over the window (batterystats/netstats were reset at start)"
+  },
+  "gaps": [
+    "cadence"
+  ]
+}

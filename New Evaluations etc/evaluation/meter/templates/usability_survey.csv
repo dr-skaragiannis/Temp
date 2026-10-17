@@ -1,0 +1,2 @@
+participant,age,gender,handset,android,prior_experience_1to5,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,U1,U2,mental,physical,temporal,performance,effort,frustration,w_mental,w_physical,w_temporal,w_performance,w_effort,w_frustration,comment
+P01,31,female,Pixel 6a,14,3,4,4,4,4,4,4,4,4,4,4,4,4,35,20,40,60,55,30,15,15,15,15,15,15,example row - delete before use

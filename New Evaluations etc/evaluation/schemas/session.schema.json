@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://meshcrowd.example/schemas/session.schema.json",
+  "title": "MeshCrowd Evaluation Session",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "sessionId",
+    "createdAt",
+    "appVersion",
+    "privacy",
+    "configuration",
+    "samples",
+    "events",
+    "epochs",
+    "transit",
+    "mesh",
+    "rewards",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": ["string", "null"], "format": "date-time" },
+    "appVersion": { "type": "string" },
+    "device": {
+      "type": "object",
+      "properties": {
+        "pseudonymousId": { "type": "string" },
+        "model": { "type": "string" },
+        "androidApi": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "privacy": {
+      "type": "object",
+      "required": ["rawIdentifiersStored", "cameraUsed", "microphoneUsed", "locationIncluded"],
+      "properties": {
+        "rawIdentifiersStored": { "type": "boolean", "const": false },
+        "cameraUsed": { "type": "boolean", "const": false },
+        "microphoneUsed": { "type": "boolean", "const": false },
+        "locationIncluded": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "configuration": { "type": "object" },
+    "samples": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sample" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "epochs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/epoch" }
+    },
+    "transit": { "type": "array", "items": { "type": "object" } },
+    "mesh": { "type": "array", "items": { "type": "object" } },
+    "rewards": { "type": "array", "items": { "type": "object" } },
+    "cost": {
+      "type": "object",
+      "description": "Optional per-session cost accounting written by the meter probes (evaluation/meter). A null value means the quantity was not measurable on this device or in this capture; it must never be replaced by zero, and the manuscript sentence that depends on it gets deleted instead.",
+      "properties": {
+        "legId": { "type": ["string", "null"] },
+        "socPctPerHour": { "type": ["number", "null"] },
+        "dischargeMilliampsMean": { "type": ["number", "null"] },
+        "bleScanBurstsPerHour": { "type": ["number", "null"] },
+        "bleScanResultsPerHour": { "type": ["number", "null"] },
+        "epochCompletionRatio": { "type": ["number", "null"] },
+        "epochGapSecondsMedian": { "type": ["number", "null"] },
+        "epochsMissedGt2xNominal": { "type": ["integer", "null"] },
+        "wifiStartScanAcceptedRatio": { "type": ["number", "null"] },
+        "deviceIdleShare": { "type": ["number", "null"] },
+        "logBytesGrown": { "type": ["integer", "null"] },
+        "mobileBytesTotal": { "type": ["integer", "null"] },
+        "serviceRestarts": { "type": ["integer", "null"] },
+        "temperatureCStart": { "type": ["number", "null"] },
+        "temperatureCEnd": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "summary": { "type": "object" }
+  },
+  "$defs": {
+    "sample": {
+      "type": "object",
+      "required": ["timestampMs", "epochId", "linkIdHash", "radioBand", "rssiDbm"],
+      "properties": {
+        "timestampMs": { "type": "integer" },
+        "epochId": { "type": "string" },
+        "linkIdHash": { "type": "string" },
+        "radioBand": { "enum": ["ble", "wifi24", "wifi5", "rfcomm", "l2cap"] },
+        "frequencyMhz": { "type": ["integer", "null"] },
+        "rssiDbm": { "type": "number", "minimum": -127, "maximum": 20 }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": ["eventId", "startMs", "endMs", "depthDb", "durationMs", "classification", "confidence"],
+      "properties": {
+        "eventId": { "type": "string" },
+        "startMs": { "type": "integer" },
+        "endMs": { "type": "integer" },
+        "dominantBand": { "enum": ["ble", "wifi24", "wifi5"] },
+        "depthDb": { "type": "number" },
+        "durationMs": { "type": "number" },
+        "texture": { "type": "number" },
+        "varianceDb2": { "type": "number" },
+        "prominenceDb": { "type": "number" },
+        "coherentLinks": { "type": "integer" },
+        "classification": { "enum": ["pedestrian", "vehicle", "disturbance", "unknown"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "range": { "type": "object" }
+      }
+    },
+    "epoch": {
+      "type": "object",
+      "required": ["epochId", "startMs", "endMs", "linkCount", "changedLinkCount", "fieldVerdict"],
+      "properties": {
+        "epochId": { "type": "string" },
+        "startMs": { "type": "integer" },
+        "endMs": { "type": "integer" },
+        "place": { "type": ["string", "null"] },
+        "geo": { "type": ["object", "null"] },
+        "linkCount": { "type": "integer", "minimum": 0 },
+        "changedLinkCount": { "type": "integer", "minimum": 0 },
+        "maxChangeDb": { "type": "number" },
+        "changeThresholdDb": { "type": "number" },
+        "fieldVerdict": { "enum": ["changed", "unchanged"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}

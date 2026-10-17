@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "description": "Published headline values used as reference targets, not hard-coded pass criteria.",
+  "targets": {
+    "fusion": {
+      "blePerCrossingAccuracyPct": 57.7,
+      "wifi5PerCrossingAccuracyPct": 25.7,
+      "wifi24PerCrossingAccuracyPct": 16.1
+    },
+    "epoch": {
+      "movementDetectionPctAt2m": 100,
+      "movementDetectionPctAt4To8m": [75, 88],
+      "stableRuleFalsePositivePct": 0,
+      "naiveRuleFalsePositivePct": [25, 62]
+    },
+    "ranging": {
+      "validationScenes": 288,
+      "suppressedIllusionM": [14, 23],
+      "rangeGateDbm": -75,
+      "noiseFloorDbm": -90
+    },
+    "transit": {
+      "detectionPctAt3To10m": 100,
+      "typingPctAt3To10m": 100,
+      "detectionPctAt15m": 94
+    },
+    "mesh": {
+      "falseConfirmationsIn160EmptyScenes": 0,
+      "singlePhoneRadiusM": [4, 12],
+      "meshRadiusM": [20, 40]
+    }
+  }
+}

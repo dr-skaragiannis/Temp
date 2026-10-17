@@ -1,0 +1,14 @@
+<!-- Merge this inside the real app module's <application> element. -->
+
+<!-- Cost instrumentation (evaluation/meter) needs NO new permission: the probes read
+     BatteryManager/PowerManager state and the app's own directories, all of which the sensing
+     build already holds. If you attach the probes to a session that runs without a foreground
+     service, add FOREGROUND_SERVICE + the matching *serviceType* permission, otherwise Android
+     kills the scan loop and the cadence numbers you record describe a killed app, not a deployment.
+     The standalone meter APK (evaluation/meter/meter-app) declares its own manifest; merging this
+     fragment does not pull it in. -->
+
+<activity
+    android:name="org.meshcrowd.evaluation.EvaluationDataActivity"
+    android:exported="false"
+    android:label="Evaluation data" />

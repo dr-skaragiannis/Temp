@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "experimentId": "meshcrowd-model-evaluation-v1.1",
+  "seed": 20260909,
+  "totalScenes": 4161,
+  "sampleIntervalMs": 200,
+  "samplesPerScene": 60,
+  "radiiM": [2, 4, 6, 8, 12, 20, 40, 68],
+  "bands": {
+    "ble": {
+      "label": "BLE",
+      "frequencyGhz": 2.4,
+      "pathLossExponent": 2.4,
+      "referenceRssiDbmAt1m": -42,
+      "referenceAttenuationDb": 7.2,
+      "maxLegM": 24
+    },
+    "wifi24": {
+      "label": "Wi-Fi 2.4 GHz",
+      "frequencyGhz": 2.4,
+      "pathLossExponent": 2.6,
+      "referenceRssiDbmAt1m": -38,
+      "referenceAttenuationDb": 9.1,
+      "maxLegM": 58
+    },
+    "wifi5": {
+      "label": "Wi-Fi 5 GHz",
+      "frequencyGhz": 5.0,
+      "pathLossExponent": 2.9,
+      "referenceRssiDbmAt1m": -35,
+      "referenceAttenuationDb": 11.5,
+      "maxLegM": 68
+    }
+  },
+  "entities": {
+    "pedestrian": {
+      "lateralSigmaM": 0.35,
+      "attenuationScale": 1.0,
+      "wobbleHz": 3.1,
+      "wobbleAmplitudeDb": 0.9
+    },
+    "vehicle": {
+      "lateralSigmaM": 1.15,
+      "attenuationScale": 2.25,
+      "attenuationCapDb": 34,
+      "flutterHz": 5.5,
+      "flutterAmplitudeDb": 0.45
+    }
+  },
+  "detector": {
+    "baselineSamples": 20,
+    "minimumDipDb": 3,
+    "sustainedSamples": 3,
+    "noiseFloorMultiplier": 2.2,
+    "vehicleDepthDb": 13,
+    "vehicleDurationMs": 1600
+  },
+  "ranging": {
+    "rangeGateDbm": -75,
+    "noiseFloorDbm": -90,
+    "radialBand": [0.15, 0.92],
+    "axisMaxM": 80
+  },
+  "epoch": {
+    "durationMs": 10000,
+    "stableSamples": 20,
+    "changeDb": 3
+  },
+  "transit": {
+    "separationsM": [3, 6, 10, 15, 25],
+    "detectionProbability": {
+      "3": 1,
+      "6": 1,
+      "10": 1,
+      "15": 0.94,
+      "25": 0.61
+    }
+  },
+  "mesh": {
+    "minimumConfirmingNodes": 2,
+    "maximumNodes": 5,
+    "agreementToleranceCount": 1,
+    "agreementToleranceM": 4,
+    "singlePhoneRadiusM": [4, 12],
+    "meshRadiusM": [20, 40],
+    "reliabilityMultiplier": 1.25
+  },
+  "suites": {
+    "fusion": 1512,
+    "ranging": 288,
+    "epoch": 864,
+    "transit": 768,
+    "mesh": 729
+  }
+}

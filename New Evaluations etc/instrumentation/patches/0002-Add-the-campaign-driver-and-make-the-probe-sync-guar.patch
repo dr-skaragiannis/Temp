@@ -1,0 +1,308 @@
+From ee22906f4aedd229a9896b202baa6c322173b35a Mon Sep 17 00:00:00 2001
+From: MeshCrowd measurement kit <meter@local>
+Date: Mon, 5 Oct 2026 21:40:59 +0000
+Subject: [PATCH 2/3] Add the campaign driver and make the probe-sync guard
+ repo-aware
+
+- scripts/run_campaign.sh: shuffled leg order with the seed logged, per-leg checklist prompt,
+  deviceidle force/unforce for B5 and battery-saver toggles for B6 applied and restored,
+  storage snapshots around B2, a charger check that appends a VOID row, then parse_leg +
+  meter_report over runs/. --dry-run prints the plan (18 legs, ~16 h) and touches no device.
+- sync_probes.sh moves into the kit as the canonical copy and no-ops outside the repo
+- README/protocol: the one-command path documented alongside the manual per-leg procedure
+---
+ evaluation/meter/README.md               |  15 ++
+ evaluation/meter/protocol.md             |   2 +
+ evaluation/meter/scripts/run_campaign.sh | 170 +++++++++++++++++++++++
+ evaluation/meter/scripts/sync_probes.sh  |  38 +++--
+ 4 files changed, 204 insertions(+), 21 deletions(-)
+ create mode 100755 evaluation/meter/scripts/run_campaign.sh
+
+diff --git a/evaluation/meter/README.md b/evaluation/meter/README.md
+index d0db310..a1c39a6 100644
+--- a/evaluation/meter/README.md
++++ b/evaluation/meter/README.md
+@@ -118,6 +118,21 @@ the campaign settings as the manuscript describes them):
+ 
+ ---
+ 
++## 2b. The short version, if you just want to run it
++
++```bash
++# one command: shuffled leg order, prompts per leg, capture + analysis at the end
++scripts/run_campaign.sh --dry-run          # look at the ~16 h plan first
++scripts/run_campaign.sh --pkg org.meshcrowd.meter --capacity-mah 4600
++```
++
++It prints a checklist before every leg, applies `deviceidle force-idle` for B5 and battery saver for
++B6 and undoes them after, wraps B2 with `storage_net_snapshot.sh`, logs `runs/campaign-log.csv` with
++the shuffle seed, then runs `parse_leg.py` and `meter_report.py` over everything. `--only B2,B5
++--reps 1` is a 1.5 h pilot evening; `--auto` is for a bench session you watch from across the room.
++The sections below explain what each leg means and why the settings have to be as stated -- read
++them before the first real run, not after.
++
+ ## 3. The measurement legs
+ 
+ Run each leg 3 times on a fresh charge cycle, in randomised order, phone on the tripod it was
+diff --git a/evaluation/meter/protocol.md b/evaluation/meter/protocol.md
+index 50be080..e4a35d0 100644
+--- a/evaluation/meter/protocol.md
++++ b/evaluation/meter/protocol.md
+@@ -6,6 +6,8 @@ back together with `runs/`.
+ 
+ Conventions: one leg = one uninterrupted run. Start the log, wait 5 min for the battery gauge to
+ settle, then start the timer (`run_leg.sh` does this). Label runs `<leg>-<rep>` with rep ∈ {1,2,3}.
++`scripts/run_campaign.sh` does the whole plan in one go (shuffled order, seed logged, prompts per leg,
++B5/B6 environment applied and restored, analysis at the end); `--dry-run` prints the plan only.
+ Randomise leg order; write the order down. Ambient temperature recorded at start/end
+ (`run_leg.sh` grabs it from `dumpsys battery`).
+ 
+diff --git a/evaluation/meter/scripts/run_campaign.sh b/evaluation/meter/scripts/run_campaign.sh
+new file mode 100755
+index 0000000..abfe2e0
+--- /dev/null
++++ b/evaluation/meter/scripts/run_campaign.sh
+@@ -0,0 +1,170 @@
++#!/usr/bin/env bash
++# run_campaign.sh — drive the whole battery/background/storage measurement plan.
++#
++#   scripts/run_campaign.sh --dry-run              # print the plan, touch nothing
++#   scripts/run_campaign.sh                        # interactive: one prompt per leg (recommended)
++#   scripts/run_campaign.sh --only B2,B5 --reps 1  # a subset, e.g. a pilot evening
++#   scripts/run_campaign.sh --auto                 # no prompts, for a long bench session
++#
++# Options: --pkg <package> (default org.meshcrowd.meter) --capacity-mah <mAh> (for the report)
++#          --uid <android uid> --minutes-b123 <n> --minutes-b456 <n>
++#
++# What it does per repetition: applies the leg's environment (Doze force, battery saver), runs
++# scripts/run_leg.sh, then restores the environment. It refuses to guess: it stops if `adb` is
++# missing, and if the charger turns out to be connected at the end of a leg it appends a VOID row
++# to runs/campaign-log.csv instead of letting that leg enter the tables.
++#
++# Randomised order, one shuffle for the whole campaign, seed printed into the log so the order is
++# reconstructable when you write the protocol paragraph.
++set -u -o pipefail
++cd "$(dirname "$0")/.."
++
++PKG=org.meshcrowd.meter; REPS=3; DRY=0; AUTO=0; ONLY=""; UID_ARG=""; CAP=""
++M_SHORT=30; M_LONG=60
++while [ $# -gt 0 ]; do
++  case "$1" in
++    --dry-run) DRY=1;; --auto) AUTO=1;;
++    --pkg) PKG="$2"; shift;; --reps) REPS="$2"; shift;;
++    --only) ONLY="$2"; shift;; --uid) UID_ARG="$2"; shift;;
++    --capacity-mah) CAP="$2"; shift;;
++    --minutes-b123) M_SHORT="$2"; shift;; --minutes-b456) M_LONG="$2"; shift;;
++    -h|--help) sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
++    *) echo "unknown option: $1" >&2; exit 2;;
++  esac; shift
++done
++
++LEGS=(B1 B2 B3 B4 B5 B6)
++dur() { case "$1" in B1|B2|B3) echo "$M_SHORT";; *) echo "$M_LONG";; esac; }
++desc() {
++  case "$1" in
++    B1) echo "idle baseline - app STOPPED, screen off, nothing running";;
++    B2) echo "sensing, screen OFF - the deployment case";;
++    B3) echo "sensing, screen ON at 40% - the operator view";;
++    B4) echo "two-handset transit/mesh session - second phone paired and running";;
++    B5) echo "sensing with FORCED Doze for the last half of the leg";;
++    B6) echo "sensing with system battery saver ON";;
++  esac; }
++pre() {
++  case "$1" in
++    B5) echo "dumpsys deviceidle force-idle";;
++    B6) echo "cmd power save-mode true";;
++    *) ;;
++  esac; }
++post() {
++  case "$1" in
++    B5) echo "dumpsys deviceidle unforce";;
++    B6) echo "cmd power save-mode false";;
++    *) ;;
++  esac; }
++
++if [ -n "$ONLY" ]; then
++  FILTERED=(); IFS=, read -ra WANT <<< "$ONLY"
++  for l in "${LEGS[@]}"; do
++    for w in "${WANT[@]}"; do
++      key=$(printf '%s' "$w" | tr -d ' ' | tr 'a-z' 'A-Z' | cut -c1-2)
++      [ "$l" = "$key" ] && FILTERED+=("$l")
++    done
++  done
++  if [ "${#FILTERED[@]}" -eq 0 ]; then
++    echo "no leg matched --only '$ONLY' (choose from ${LEGS[*]})" >&2; exit 2
++  fi
++  LEGS=("${FILTERED[@]}")
++fi
++[ "${#LEGS[@]}" -gt 0 ] || { echo "no legs selected"; exit 2; }
++
++command -v adb >/dev/null 2>&1 || [ "$DRY" = 1 ] || { echo "adb not on PATH - install platform-tools, then re-run"; exit 1; }
++
++SEED=$(date +%s)
++ORDER=$(LEGS="${LEGS[*]}" REPS="$REPS" SEED="$SEED" SHORT="$M_SHORT" LONG="$M_LONG" python3 -c "
++import os, random
++legs = os.environ['LEGS'].split(); reps = int(os.environ['REPS'])
++short, long_ = int(os.environ['SHORT']), int(os.environ['LONG'])
++random.seed(int(os.environ['SEED']))
++plan = [(l, r) for l in legs for r in range(1, reps + 1)]
++random.shuffle(plan)
++print('\n'.join('%s %d %d' % (l, r, short if l in ('B1','B2','B3') else long_) for l, r in plan))")
++TOTAL=$(echo "$ORDER" | wc -l | tr -d ' ')
++MINS=$(echo "$ORDER" | awk '{s+=$3} END{print s}')
++GAP=10; COOL=$(( (TOTAL - 1) * GAP ))
++
++echo "==================== MeshCrowd measurement campaign ===================="
++echo "package        : $PKG"
++echo "legs selected  : ${LEGS[*]}   repetitions: $REPS"
++echo "plan           : $TOTAL legs, ~$MINS min of measurement + ${COOL} min of settling  (~$(( (MINS+COOL)/60 )) h)"
++echo "shuffle seed   : $SEED   (quote this in the protocol paragraph)"
++echo "order          : (leg, rep, minutes)"
++echo "$ORDER" | awk '{printf "  %2d. %s rep %s  %3d min\n", NR, $1, $2, $3}'
++[ "$DRY" = 1 ] && echo "MODE           : DRY RUN - no adb calls, no files written except this plan"
++echo "======================================================================"
++
++mkdir -p runs
++LOG=runs/campaign-log.csv
++[ -f "$LOG" ] || echo "seq,leg,rep,label,start,end,notes" > "$LOG"
++
++adb_sh() { if [ "$DRY" = 1 ]; then echo "    [dry] adb $*"; else adb shell "$*" >/dev/null 2>&1 || echo "    ! adb shell '$*' failed"; fi; }
++
++confirm() { # $1 leg
++  [ "$AUTO" = 1 ] && return 0
++  [ "$DRY" = 1 ] && return 0
++  echo
++  echo "  ---- $1: $(desc "$1")"
++  echo "  checklist (verify on the phone, not by assumption):"
++  echo "    [ ] charger UNPLUGGED for the whole leg"
++  echo "    [ ] adaptive charging OFF, adaptive battery OFF"
++  echo "    [ ] Settings -> Apps -> $PKG -> Battery -> Unrestricted"
++  echo "    [ ] brightness 40% (B3 only: screen stays on)"
++  echo "    [ ] airplane mode ON if you do not want incoming traffic to pollute the leg"
++  echo "    [ ] leg-log.csv row started (templates/leg-log.csv)"
++  if [ -n "$(pre "$1")" ]; then echo "    [ ] runner will apply: adb shell $(pre "$1")"; fi
++  if [ -n "$(post "$1")" ]; then echo "    [ ] runner will restore: adb shell $(post "$1")"; fi
++  printf "  press Enter when the phone is in this state (ctrl-c to abort) "
++  read -r _ || true
++}
++
++i=0
++while read -r L R MIN; do
++  i=$((i + 1))
++  [ -z "${MIN:-}" ] && MIN=$(dur "$L")
++  LABEL="${L}-r${R}"
++  echo
++  echo "[$i/$TOTAL] $LABEL  ($MIN min)  $(desc "$L")"
++  confirm "$L"
++  [ -n "$(pre "$L")" ] && adb_sh "$(pre "$L")"
++  if [ "$L" = "B2" ]; then
++    if [ "$DRY" = 1 ]; then echo "    [dry] storage_net_snapshot.sh before $LABEL $PKG"
++    else bash scripts/storage_net_snapshot.sh before "$LABEL" "$PKG" >/dev/null; fi
++  fi
++  if [ "$DRY" = 1 ]; then
++    echo "    [dry] scripts/run_leg.sh $LABEL $MIN $PKG"
++  else
++    bash scripts/run_leg.sh "$LABEL" "$MIN" "$PKG" || { echo "    ! run_leg.sh failed for $LABEL - see runs/"; }
++  fi
++  if [ "$L" = "B2" ]; then
++    if [ "$DRY" = 1 ]; then echo "    [dry] storage_net_snapshot.sh after $LABEL $PKG"
++    else bash scripts/storage_net_snapshot.sh after "$LABEL" "$PKG" >/dev/null; fi
++  fi
++  [ -n "$(post "$L")" ] && adb_sh "$(post "$L")"
++  echo "$i,$L,$R,$LABEL,$(date -Is),$(date -Is),seed=$SEED" >> "$LOG"
++  # a plug check is a real control: an unnoticed charger silently voids the leg
++  if [ "$DRY" = 0 ]; then
++    PLG=$(adb shell dumpsys battery 2>/dev/null | tr -d '\r' | sed -n 's/.*plugged: \([0-9]*\).*/\1/p')
++    [ "${PLG:-0}" != "0" ] && echo "    WARNING: charger was connected at the end of $LABEL - mark this leg void" \
++      && echo "$i,$L,$R,$LABEL,VOID,charger connected," >> "$LOG"
++  fi
++  [ "$i" -lt "$TOTAL" ] && { echo "    settling ${GAP} min (phone idle, untouched)"; [ "$DRY" = 1 ] || sleep $((GAP * 60)); }
++done <<< "$ORDER"
++
++if [ "$DRY" = 1 ]; then
++  echo
++  echo "dry run complete. To actually measure: plug the phone in ONLY to install, then run this"
++  echo "without --dry-run. Expect $(( (MINS+COOL)/60 )) hours; splitting over evenings is fine,"
++  echo "the plan order is fixed by the seed so you can resume by using --only with the missing legs."
++  exit 0
++fi
++
++echo
++echo "== analysing"
++python3 analysis/parse_leg.py runs/*/ ${UID_ARG:+--uid "$UID_ARG"} || echo "parse_leg failed - report the traceback, do not hand-edit the CSVs"
++python3 analysis/meter_report.py runs/*/metrics.json --outdir results ${CAP:+--capacity-mah "$CAP"} \
++  && echo "  -> results/measurements.tex, results/numbers.md"
++echo "done. Fill templates/leg-log.csv and templates/results-worksheet.md from those files."
+diff --git a/evaluation/meter/scripts/sync_probes.sh b/evaluation/meter/scripts/sync_probes.sh
+index 125578a..a7ace06 100755
+--- a/evaluation/meter/scripts/sync_probes.sh
++++ b/evaluation/meter/scripts/sync_probes.sh
+@@ -1,48 +1,44 @@
+ #!/usr/bin/env bash
+ # sync_probes.sh — keep the Route A copies of the probe classes identical to the canonical ones.
+ #
+-#   evaluation/meter/probes/*.kt                     canonical (used by the meter APK)
++#   <kit>/probes/*.kt                                  canonical (what the meter APK compiles)
+ #   evaluation/android/src/main/java/org/meshcrowd/probes/   the campaign build's copies
+ #
+-# Two trees, one source of truth. Run this after editing a probe, and run it with --check in CI or
+-# before a measurement session: a mismatch means the campaign APK and the meter APK would count
+-# different things, which invalidates any comparison between them.
++# Two trees, one source of truth. Run this after editing a probe; run it with --check in CI or
++# before a measurement session. A mismatch means the campaign APK and the meter APK would be
++# counting different things, which invalidates any comparison between them.
++#
++# Outside the repository (e.g. a standalone copy of the kit) there is nothing to sync, and saying so
++# beats failing with a confusing "no such directory".
+ set -u -o pipefail
+ shopt -s nullglob
+-cd "$(dirname "$0")/.."                       # -> evaluation/meter
++cd "$(dirname "$0")/.."                       # -> the kit directory
++
+ SRC=probes
+ DST=../android/src/main/java/org/meshcrowd/probes
++if [ ! -d "$(dirname "$DST")" ]; then
++  if [ "${1:-}" = "--check" ]; then echo "not inside the repo (no evaluation/android tree) - nothing to check"; exit 0; fi
++  echo "not inside the repo: $DST does not exist; canonical probes stay in $SRC"; exit 0
++fi
+ 
+ case "${1:-}" in
+   --check)
+     st=0
+-    mkdir -p "$DST"
+     for f in "$SRC"/*.kt; do
+       b=$(basename "$f")
+-      if ! cmp -s "$f" "$DST/$b"; then
+-        echo "DRIFT: $b differs between $SRC and $DST"
+-        echo "       fix with: scripts/sync_probes.sh"
+-        st=1
+-      fi
++      cmp -s "$f" "$DST/$b" || { echo "DRIFT: $b differs between $SRC and $DST"; echo "       fix with: scripts/sync_probes.sh"; st=1; }
+     done
+     for f in "$DST"/*.kt; do
+-      b=$(basename "$f")
+-      [ -f "$SRC/$b" ] || { echo "STRAY: $DST/$b has no canonical counterpart"; st=1; }
++      b=$(basename "$f"); [ -f "$SRC/$b" ] || { echo "STRAY: $DST/$b has no canonical counterpart"; st=1; }
+     done
+     [ "$st" = 0 ] && echo "probes in sync ($(ls "$SRC"/*.kt | wc -l) files)"
+     exit "$st"
+     ;;
+   ""|--force)
+-    mkdir -p "$DST"
+     n=0
+-    for f in "$SRC"/*.kt; do
+-      cp -f "$f" "$DST/$(basename "$f")" && n=$((n+1))
+-    done
++    for f in "$SRC"/*.kt; do cp -f "$f" "$DST/$(basename "$f")" && n=$((n + 1)); done
++    for f in "$DST"/*.kt; do [ -f "$SRC/$(basename "$f")" ] || { echo "removing stray $(basename "$f")"; rm -f "$f"; }; done
+     echo "copied $n file(s) to $DST"
+-    # the campaign tree may hold a probe that was later removed upstream
+-    for f in "$DST"/*.kt; do
+-      [ -f "$SRC/$(basename "$f")" ] || { echo "removing stray $(basename "$f")"; rm -f "$f"; }
+-    done
+     "$0" --check
+     ;;
+   *)
+-- 
+2.47.3
+

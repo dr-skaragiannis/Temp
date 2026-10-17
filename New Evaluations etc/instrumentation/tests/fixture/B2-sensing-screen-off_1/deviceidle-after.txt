@@ -1,0 +1,4 @@
+  mDeviceIdleMode=4  mLightDeviceIdleMode=0
+  step=IDLE
+Reason: Alarm 12
+Reason: Alarm 3

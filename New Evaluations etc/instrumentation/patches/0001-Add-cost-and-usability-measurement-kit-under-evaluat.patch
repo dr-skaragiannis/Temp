@@ -1,0 +1,3833 @@
+From 762b21c81b7367b223a3e82b5f927ec0fd4e4a23 Mon Sep 17 00:00:00 2001
+From: MeshCrowd measurement kit <meter@local>
+Date: Mon, 5 Oct 2026 21:35:24 +0000
+Subject: [PATCH 1/3] Add cost and usability measurement kit under
+ evaluation/meter
+
+- probes (battery, scan cadence, storage/traffic) as classes the campaign build can compile,
+  plus MeshCrowdMeterHooks.kt with the call sites in MeshCrowdEvaluationHooks style
+- meter-app: standalone foreground-service APK reproducing the sensing duty cycle
+  (15 s epoch, 5 bursts/30 s); scripts/build_apk_local.sh builds it with kotlinc+d8+aapt2 only
+- run_leg.sh / storage_net_snapshot.sh capture protocol; parse_leg.py + meter_report.py +
+  storage_delta.py + usability_report.py turn captures into LaTeX and paste-ready prose,
+  reporting n/m rather than zero whenever a capture did not yield a quantity
+- protocol.md (legs B1-B6, tasks U1-U8, Wilson intervals, pilot caveat), consent form,
+  leg worksheet, latex/measurement_tables.tex skeleton
+- tests/: synthetic fixture + 30 assertions over the analysers (labelled synthetic, not data)
+- session.schema.json gains an optional 'cost' object; manifest fragment notes that the
+  probes need no new permission; sync_probes.sh guards the two probe copies against drift
+---
+ .gitignore                                    |  10 +-
+ evaluation/README.md                          |   7 +-
+ .../android/AndroidManifest.fragment.xml      |   9 +
+ evaluation/android/README.md                  |   9 +-
+ .../evaluation/MeshCrowdMeterHooks.kt         |  85 ++++
+ .../java/org/meshcrowd/probes/BatteryProbe.kt |  77 +++
+ .../org/meshcrowd/probes/ScanCadenceLogger.kt | 120 +++++
+ .../java/org/meshcrowd/probes/StorageProbe.kt |  69 +++
+ evaluation/meter/INTEGRATION.md               | 134 +++++
+ evaluation/meter/README.md                    | 220 ++++++++
+ evaluation/meter/analysis/meter_report.py     | 206 ++++++++
+ evaluation/meter/analysis/parse_leg.py        | 478 ++++++++++++++++++
+ evaluation/meter/analysis/storage_delta.py    |  66 +++
+ evaluation/meter/analysis/usability_report.py | 209 ++++++++
+ evaluation/meter/latex/measurement_tables.tex | 146 ++++++
+ .../meter/meter-app/app/build.gradle.kts      |  39 ++
+ .../app/src/main/AndroidManifest.xml          |  43 ++
+ .../java/org/meshcrowd/meter/MainActivity.kt  | 165 ++++++
+ .../java/org/meshcrowd/meter/MeterConfig.kt   |  18 +
+ .../java/org/meshcrowd/meter/MeterService.kt  | 207 ++++++++
+ .../app/src/main/res/values/strings.xml       |   3 +
+ evaluation/meter/meter-app/build.gradle.kts   |   7 +
+ evaluation/meter/meter-app/gradle.properties  |   3 +
+ .../meter/meter-app/settings.gradle.kts       |  16 +
+ evaluation/meter/probes/BatteryProbe.kt       |  77 +++
+ evaluation/meter/probes/ScanCadenceLogger.kt  | 120 +++++
+ evaluation/meter/probes/StorageProbe.kt       |  69 +++
+ evaluation/meter/protocol.md                  |  98 ++++
+ evaluation/meter/scripts/build_apk_local.sh   |  71 +++
+ evaluation/meter/scripts/run_leg.sh           |  99 ++++
+ .../meter/scripts/storage_net_snapshot.sh     |  43 ++
+ evaluation/meter/scripts/sync_probes.sh       |  52 ++
+ evaluation/meter/templates/consent-form.md    |  91 ++++
+ evaluation/meter/templates/leg-log.csv        |   7 +
+ .../meter/templates/results-worksheet.md      |  83 +++
+ .../meter/templates/usability_survey.csv      |   2 +
+ .../meter/templates/usability_tasks.csv       |   4 +
+ evaluation/meter/tests/make_fixture.py        | 177 +++++++
+ evaluation/meter/tests/run_tests.sh           | 116 +++++
+ evaluation/schemas/session.schema.json        |  22 +
+ 40 files changed, 3474 insertions(+), 3 deletions(-)
+ create mode 100644 evaluation/android/src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt
+ create mode 100644 evaluation/android/src/main/java/org/meshcrowd/probes/BatteryProbe.kt
+ create mode 100644 evaluation/android/src/main/java/org/meshcrowd/probes/ScanCadenceLogger.kt
+ create mode 100644 evaluation/android/src/main/java/org/meshcrowd/probes/StorageProbe.kt
+ create mode 100644 evaluation/meter/INTEGRATION.md
+ create mode 100644 evaluation/meter/README.md
+ create mode 100755 evaluation/meter/analysis/meter_report.py
+ create mode 100755 evaluation/meter/analysis/parse_leg.py
+ create mode 100755 evaluation/meter/analysis/storage_delta.py
+ create mode 100755 evaluation/meter/analysis/usability_report.py
+ create mode 100644 evaluation/meter/latex/measurement_tables.tex
+ create mode 100644 evaluation/meter/meter-app/app/build.gradle.kts
+ create mode 100644 evaluation/meter/meter-app/app/src/main/AndroidManifest.xml
+ create mode 100644 evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MainActivity.kt
+ create mode 100644 evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterConfig.kt
+ create mode 100644 evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterService.kt
+ create mode 100644 evaluation/meter/meter-app/app/src/main/res/values/strings.xml
+ create mode 100644 evaluation/meter/meter-app/build.gradle.kts
+ create mode 100644 evaluation/meter/meter-app/gradle.properties
+ create mode 100644 evaluation/meter/meter-app/settings.gradle.kts
+ create mode 100644 evaluation/meter/probes/BatteryProbe.kt
+ create mode 100644 evaluation/meter/probes/ScanCadenceLogger.kt
+ create mode 100644 evaluation/meter/probes/StorageProbe.kt
+ create mode 100644 evaluation/meter/protocol.md
+ create mode 100755 evaluation/meter/scripts/build_apk_local.sh
+ create mode 100755 evaluation/meter/scripts/run_leg.sh
+ create mode 100755 evaluation/meter/scripts/storage_net_snapshot.sh
+ create mode 100755 evaluation/meter/scripts/sync_probes.sh
+ create mode 100644 evaluation/meter/templates/consent-form.md
+ create mode 100644 evaluation/meter/templates/leg-log.csv
+ create mode 100644 evaluation/meter/templates/results-worksheet.md
+ create mode 100644 evaluation/meter/templates/usability_survey.csv
+ create mode 100644 evaluation/meter/templates/usability_tasks.csv
+ create mode 100644 evaluation/meter/tests/make_fixture.py
+ create mode 100644 evaluation/meter/tests/run_tests.sh
+
+diff --git a/.gitignore b/.gitignore
+index 2333105..5e125d1 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -59,4 +59,12 @@ app/*.aab
+ .env.local
+ .env.development.local
+ .env.test.local
+-.env.production.local
+\ No newline at end of file
++.env.production.local
++
++# measurement kit: generated artefacts, never committed
++evaluation/meter/dist/
++evaluation/meter/runs/
++evaluation/meter/results/
++evaluation/meter/tests/fixture/
++evaluation/meter/tests/out/
++evaluation/meter/**/__pycache__/
+diff --git a/evaluation/README.md b/evaluation/README.md
+index ecce605..1b72250 100644
+--- a/evaluation/README.md
++++ b/evaluation/README.md
+@@ -113,4 +113,9 @@ The exported file conforms to `schemas/session.schema.json` and can be archived
+ 3. Scene-level decisions are retained, not only aggregate percentages.
+ 4. The SHA-256 reproducibility hash covers all ordered scene results.
+ 5. Published targets are not used to overwrite generated results.
+-6. Missing original field data is stated explicitly.
+\ No newline at end of file
++6. Missing original field data is stated explicitly.
++
++Cost and usability measurement: `meter/` (battery, background operation, storage, traffic,
++usability protocol, analysers). Start with `meter/README.md`; repo-specific wiring is in
++`meter/INTEGRATION.md`. Nothing in that directory is a measurement of the field campaign until
++`meter/runs/` contains captures you took.
+diff --git a/evaluation/android/AndroidManifest.fragment.xml b/evaluation/android/AndroidManifest.fragment.xml
+index 4fd3cca..71ae768 100644
+--- a/evaluation/android/AndroidManifest.fragment.xml
++++ b/evaluation/android/AndroidManifest.fragment.xml
+@@ -1,4 +1,13 @@
+ <!-- Merge this inside the real app module's <application> element. -->
++
++<!-- Cost instrumentation (evaluation/meter) needs NO new permission: the probes read
++     BatteryManager/PowerManager state and the app's own directories, all of which the sensing
++     build already holds. If you attach the probes to a session that runs without a foreground
++     service, add FOREGROUND_SERVICE + the matching *serviceType* permission, otherwise Android
++     kills the scan loop and the cadence numbers you record describe a killed app, not a deployment.
++     The standalone meter APK (evaluation/meter/meter-app) declares its own manifest; merging this
++     fragment does not pull it in. -->
++
+ <activity
+     android:name="org.meshcrowd.evaluation.EvaluationDataActivity"
+     android:exported="false"
+diff --git a/evaluation/android/README.md b/evaluation/android/README.md
+index f3d3694..01c9205 100644
+--- a/evaluation/android/README.md
++++ b/evaluation/android/README.md
+@@ -103,4 +103,11 @@ Add an **Evaluation data** section in Settings:
+ 5. Delete selected session.
+ 6. A privacy note: raw radio identifiers are never exported; location is opt-in.
+ 
+-The schema consumed by the experiment package is `../../schemas/session.schema.json`.
+\ No newline at end of file
++The schema consumed by the experiment package is `../../schemas/session.schema.json`.
++
++Route A instrumentation now lives beside this file: `src/main/java/org/meshcrowd/probes/*.kt`
++(copies of the canonical `../meter/probes/`) and
++`src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt`. Run
++`../meter/scripts/sync_probes.sh --check` before a measurement session, so the app module and the
++meter APK cannot be compiling different probe code. The standalone meter APK under
++`../meter/meter-app` builds without the missing app module; see `../meter/INTEGRATION.md`.
+diff --git a/evaluation/android/src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt b/evaluation/android/src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt
+new file mode 100644
+index 0000000..78f3f98
+--- /dev/null
++++ b/evaluation/android/src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt
+@@ -0,0 +1,85 @@
++package org.meshcrowd.evaluation
++
++import android.content.Context
++import org.meshcrowd.probes.BatteryProbe
++import org.meshcrowd.probes.ScanCadenceLogger
++import org.meshcrowd.probes.StorageProbe
++import java.io.File
++
++/**
++ * Route A adapter: the cost probes for the campaign build.
++ *
++ * [MeshCrowdEvaluationHooks] records what the app *sensed*. This records what sensing *cost*:
++ * battery drain, the fraction of scan opportunities the platform actually granted, and the bytes
++ * the session log occupied. Both are written under the same external files dir so a release build
++ * needs no `run-as`, and both are bracketed by the same session id.
++ *
++ * Design constraints, in case this is reviewed later:
++ *  - it adds no behaviour to the sensing path: every method here is a counter or a periodic
++ *    `dumpsys`-equivalent read; nothing is throttled, reordered, or gated on a measurement;
++ *  - the CSV cadence, not the per-sample hooks, is what `analysis/parse_leg.py` reads, so a
++ *    missed hook cannot silently bias a drain number;
++ *  - no identifier, position, or raw frame is written here. If you add one, the session schema
++ *    (`evaluation/schemas/session.schema.json`) and the privacy claims both need updating.
++ */
++class MeshCrowdMeterHooks(
++    context: Context,
++    private val label: String,
++) {
++    private val dir: File = context.getExternalFilesDir("meter") ?: context.filesDir
++    private val battery = BatteryProbe(context, dir)
++    private val cadence = ScanCadenceLogger(context, dir)
++    private val storage = StorageProbe(context)
++    private var started = false
++
++    /** Call before the first scan is opened, so the sampling window brackets the whole session. */
++    fun start() {
++        if (started) return
++        started = true
++        battery.start(label)
++        cadence.start(label)
++        storage.start(label)
++    }
++
++    /** Call after the recorder has finished the session, so log growth includes the final write. */
++    fun stop() {
++        if (!started) return
++        started = false
++        storage.stop()
++        cadence.stop()
++        battery.stop()
++    }
++
++    // ---- sensing-engine call sites -------------------------------------------------
++
++    /** At each `BluetoothLeScanner.startScan(...)`, immediately before the call. */
++    fun onBleScanStarted() = cadence.onBleScanStarted()
++
++    /** In `onBatchResults`/`onScanResult`: how many results arrived, how many distinct links. */
++    fun onBleScanResults(count: Int, distinctLinks: Int) = cadence.onBleScanResults(count, distinctLinks)
++
++    /**
++     * Each Wi-Fi scan-results poll. [fresh] is the important one: true when at least one result is
++     * newer than the previous poll's newest timestamp, i.e. the platform delivered something new.
++     */
++    fun onWifiPoll(fresh: Boolean) = cadence.onWifiPoll(fresh)
++
++    /** Record the return value of `WifiManager.startScan()` (false on Android 9+ for third-party apps). */
++    fun onWifiStartScan(accepted: Boolean) = cadence.onWifiStartScan(accepted)
++
++    fun onEpochAttempted() {
++        cadence.onEpochAttempted()
++        cadence.noteEvent("epoch_attempted")
++    }
++
++    fun onEpochCompleted() {
++        cadence.onEpochCompleted()
++        cadence.noteEvent("epoch_completed")
++    }
++
++    /** Traffic counters as the app sees them; also written into the storage CSV every minute. */
++    fun trafficLine(): String = storage.trafficLine()
++
++    /** Where the CSVs land — needed by the export screen and by `scripts/run_leg.sh`. */
++    fun outputDir(): File = dir
++}
+diff --git a/evaluation/android/src/main/java/org/meshcrowd/probes/BatteryProbe.kt b/evaluation/android/src/main/java/org/meshcrowd/probes/BatteryProbe.kt
+new file mode 100644
+index 0000000..2a43851
+--- /dev/null
++++ b/evaluation/android/src/main/java/org/meshcrowd/probes/BatteryProbe.kt
+@@ -0,0 +1,77 @@
++package org.meshcrowd.probes
++
++import android.content.Context
++import android.content.Intent
++import android.content.IntentFilter
++import android.os.BatteryManager
++import android.os.Handler
++import android.os.Looper
++import android.os.PowerManager
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Samples the battery gauge, the instantaneous current where the HAL exposes it, and the
++ * Doze/screen state on a fixed period. Writes one CSV per leg so drain can be computed
++ * independently of batterystats.
++ *
++ * Drop-in: create in whatever owns the sensing session, call start()/stop() around it.
++ */
++class BatteryProbe(
++    private val context: Context,
++    private val dir: File,
++    private val periodMs: Long = 5_000L,
++) {
++    private val handler = Handler(Looper.getMainLooper())
++    private val battery = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
++    private val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
++    private var t0 = 0L
++    private lateinit var out: File
++    private var running = false
++
++    private val tick = object : Runnable {
++        override fun run() {
++            if (!running) return
++            sample()
++            handler.postDelayed(this, periodMs)
++        }
++    }
++
++    fun start(label: String) {
++        if (!dir.exists()) dir.mkdirs()
++        out = File(dir, "battery-$label.csv")
++        out.writeText("elapsed_s,level,scale,voltage_duV,temperature_dC,status,plugged,current_uA,device_idle,light_idle,screen\n")
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        handler.post(tick)
++    }
++
++    fun stop() {
++        running = false
++        handler.removeCallbacks(tick)
++    }
++
++    private fun sample() {
++        val intent: Intent? = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
++        val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
++        val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
++        val volt = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) ?: -1
++        val temp = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
++        val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
++        val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
++        // CURRENT_NOW is uA on most HALs and negative while discharging; -1 where unavailable.
++        val current = runCatching { battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) }.getOrDefault(-1)
++        val elapsed = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(elapsed), level, scale, volt * 1000, temp, status, plugged, current,
++                if (power.isDeviceIdleMode) 1 else 0,
++                if (power.isDeviceLightIdleMode) 1 else 0,
++                screenState(),
++            ).joinToString(",") + "\n"
++        )
++    }
++
++    private fun screenState(): String =
++        if (power.isInteractive) "on" else "off"
++}
+diff --git a/evaluation/android/src/main/java/org/meshcrowd/probes/ScanCadenceLogger.kt b/evaluation/android/src/main/java/org/meshcrowd/probes/ScanCadenceLogger.kt
+new file mode 100644
+index 0000000..a3dabfd
+--- /dev/null
++++ b/evaluation/android/src/main/java/org/meshcrowd/probes/ScanCadenceLogger.kt
+@@ -0,0 +1,120 @@
++package org.meshcrowd.probes
++
++import android.content.BroadcastReceiver
++import android.content.Context
++import android.content.Intent
++import android.content.IntentFilter
++import android.os.Handler
++import android.os.Looper
++import android.os.PowerManager
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Records whether the OS actually delivers the scan cadence the app asks for.
++ *
++ * Call the on* methods from your real scan callbacks; the logger aggregates per window
++ * (default 30 s, matching Android's scan-throttle window) and writes one row per window.
++ * That is the evidence for "operational consequence of throttling": epochs *attempted* vs
++ * epochs *delivered*, split by screen state and Doze state.
++ */
++class ScanCadenceLogger(
++    private val context: Context,
++    private val dir: File,
++    private val windowMs: Long = 30_000L,
++) {
++    private val handler = Handler(Looper.getMainLooper())
++    private val power by lazy { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
++    private lateinit var out: File
++    private var labelName: String = "session"
++    private var t0 = 0L
++    private var running = false
++
++    // window accumulators
++    private var bleStarts = 0
++    private var bleResults = 0
++    private var bleLinks = 0
++    private var wifiPolls = 0
++    private var wifiFreshPolls = 0
++    private var wifiStartScanTried = 0
++    private var wifiStartScanAccepted = 0
++    private var epochsAttempted = 0
++    private var epochsCompleted = 0
++
++    private val screenReceiver = object : BroadcastReceiver() {
++        override fun onReceive(c: Context, i: Intent) {
++            when (i.action) {
++                Intent.ACTION_SCREEN_ON -> writeEvent("screen_on")
++                Intent.ACTION_SCREEN_OFF -> writeEvent("screen_off")
++            }
++        }
++    }
++
++    private val flush = object : Runnable {
++        override fun run() {
++            if (!running) return
++            flushWindow()
++            handler.postDelayed(this, windowMs)
++        }
++    }
++
++    fun start(label: String) {
++        labelName = label
++        if (!dir.exists()) dir.mkdirs()
++        out = File(dir, "cadence-$label.csv")
++        out.writeText(
++            "window_start_s,ble_scan_starts,ble_results,ble_links,wifi_polls,wifi_polls_fresh," +
++                "wifi_startscan_tried,wifi_startscan_accepted,epochs_attempted,epochs_completed," +
++                "screen_on,device_idle,light_idle\n"
++        )
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        context.registerReceiver(screenReceiver, IntentFilter().apply {
++            addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF)
++        })
++        handler.post(flush)
++    }
++
++    fun stop() {
++        running = false
++        handler.removeCallbacks(flush)
++        runCatching { context.unregisterReceiver(screenReceiver) }
++    }
++
++    // ---- call these from the app -------------------------------------------------
++    fun onBleScanStarted() { bleStarts++ }
++    fun onBleScanResults(count: Int, distinctLinks: Int) {
++        bleResults += count
++        bleLinks = maxOf(bleLinks, distinctLinks)
++    }
++    /** [fresh] true when the results are newer than the previous poll's timestamp list. */
++    fun onWifiPoll(fresh: Boolean) { wifiPolls++; if (fresh) wifiFreshPolls++ }
++    fun onWifiStartScan(accepted: Boolean) { wifiStartScanTried++; if (accepted) wifiStartScanAccepted++ }
++    fun onEpochAttempted() { epochsAttempted++ }
++    fun onEpochCompleted() { epochsCompleted++ }
++    /** Timestamped marker in events-<label>.csv; used to recover epoch gaps. */
++    fun noteEvent(name: String) { writeEvent(name) }
++    // ------------------------------------------------------------------------------
++
++    private fun flushWindow() {
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(el), bleStarts, bleResults, bleLinks, wifiPolls, wifiFreshPolls,
++                wifiStartScanTried, wifiStartScanAccepted, epochsAttempted, epochsCompleted,
++                if (power.isInteractive) 1 else 0,
++                if (power.isDeviceIdleMode) 1 else 0,
++                if (power.isDeviceLightIdleMode) 1 else 0,
++            ).joinToString(",") + "\n"
++        )
++        bleStarts = 0; bleResults = 0; bleLinks = 0
++        wifiPolls = 0; wifiFreshPolls = 0
++        wifiStartScanTried = 0; wifiStartScanAccepted = 0
++        epochsAttempted = 0; epochsCompleted = 0
++    }
++
++    private fun writeEvent(name: String) {
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        File(dir, "events-$labelName.csv").appendText("%.1f,%s\n".format(el, name))
++    }
++}
+diff --git a/evaluation/android/src/main/java/org/meshcrowd/probes/StorageProbe.kt b/evaluation/android/src/main/java/org/meshcrowd/probes/StorageProbe.kt
+new file mode 100644
+index 0000000..e3b3a20
+--- /dev/null
++++ b/evaluation/android/src/main/java/org/meshcrowd/probes/StorageProbe.kt
+@@ -0,0 +1,69 @@
++package org.meshcrowd.probes
++
++import android.content.Context
++import android.os.Handler
++import android.os.Looper
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Tracks how much the app's own logging costs on disk, and (via [trafficSnapshot]) how much
++ * mobile/Wi-Fi traffic the process accounts for. No root needed: only the app's own
++ * directories are measured, which is exactly what the deployment question is about.
++ */
++class StorageProbe(private val context: Context, private val periodMs: Long = 60_000L) {
++    private val handler = Handler(Looper.getMainLooper())
++    private lateinit var out: File
++    private var t0 = 0L
++    private var running = false
++
++    private val tick = object : Runnable {
++        override fun run() {
++            if (!running) return
++            sample(); handler.postDelayed(this, periodMs)
++        }
++    }
++
++    fun start(label: String) {
++        val d = context.getExternalFilesDir("meter") ?: context.filesDir
++        out = File(d, "storage-$label.csv")
++        out.writeText("elapsed_s,files_bytes,cache_bytes,nobackup_bytes,log_files,log_bytes_max,log_bytes_total,traffic\n")
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        handler.post(tick)
++    }
++
++    fun stop() { running = false; handler.removeCallbacks(tick) }
++
++    private fun sample() {
++        val files = context.filesDir
++        val cache = context.cacheDir
++        val noBackup = File(context.dataDir, "no_backup")
++        val logs = files.listFiles { f: File -> f.isFile && !f.name.endsWith(".csv") }?.toList() ?: emptyList()
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(el), sizeOf(files), sizeOf(cache),
++                if (noBackup.exists()) sizeOf(noBackup) else 0,
++                logs.size, logs.maxOfOrNull { it.length() } ?: 0L, logs.sumOf { it.length() },
++                trafficLine(),
++            ).joinToString(",") + "\n"
++        )
++    }
++
++    private fun sizeOf(dir: File): Long {
++        if (!dir.exists()) return 0L
++        return dir.walkTopDown().filter { it.isFile && it.canRead() }.map { it.length() }.sum()
++    }
++
++    /** Per-UID traffic from the same counters Settings shows: the paper's "no data plan
++     *  impact" claim is only as good as these four numbers. */
++    fun trafficLine(): String {
++        val rx = android.net.TrafficStats.getMobileRxBytes()
++        val tx = android.net.TrafficStats.getMobileTxBytes()
++        val urx = android.net.TrafficStats.getUidRxBytes(android.os.Process.myUid())
++        val utx = android.net.TrafficStats.getUidTxBytes(android.os.Process.myUid())
++        // ';' inside the field: a comma would split the column in the CSV.
++        return "mobile_rx=$rx;mobile_tx=$tx;uid_rx=$urx;uid_tx=$utx"
++    }
++}
+diff --git a/evaluation/meter/INTEGRATION.md b/evaluation/meter/INTEGRATION.md
+new file mode 100644
+index 0000000..206e854
+--- /dev/null
++++ b/evaluation/meter/INTEGRATION.md
+@@ -0,0 +1,134 @@
++# Wiring the cost probes into the campaign build (Route A)
++
++Read this with `README.md` (kit overview, routes, phone settings) and `protocol.md` (leg
++definitions, tasks U1–U8). This file is only about *where the code goes in this repository*.
++
++## 0. The situation, stated plainly
++
++As of commit `d87a713` this repository contains **no Android application module**. `git log --all
++--name-only` over both branches (`main`, `master`, one commit each) returns exactly four Kotlin
++files under `evaluation/android/`, plus `AndroidManifest.fragment.xml`, and no `build.gradle*`, no
++`AndroidManifest.xml`, no `app/` tree. `.gitignore` excludes `app/build`, `app/*.apk`, `app/*.aab`
++but **not** `app/src`, so nothing was filtered out by accident — the module was simply never
++committed. The public README still points at an absent `app/`.
++
++Consequence for the paper: the campaign APK cannot be instrumented *from this repository alone*.
++Route A below therefore ships as a patch you apply to the private module; Route B (the standalone
++meter APK in `meter-app/`) is the part that is fully buildable from here.
++
++## 1. Route A — files to add to the private app module
++
++| This repo | In your module |
++|---|---|
++| `evaluation/android/src/main/java/org/meshcrowd/probes/BatteryProbe.kt` | `app/src/main/java/org/meshcrowd/probes/BatteryProbe.kt` |
++| `…/probes/ScanCadenceLogger.kt` | same relative path |
++| `…/probes/StorageProbe.kt` | same relative path |
++| `…/evaluation/MeshCrowdMeterHooks.kt` | `app/src/main/java/org/meshcrowd/evaluation/MeshCrowdMeterHooks.kt` |
++| `evaluation/android/AndroidManifest.fragment.xml` | merged into `app/src/main/AndroidManifest.xml` |
++| `evaluation/schemas/session.schema.json` (adds optional `cost`) | your `assets/schemas/session.schema.json`, if the app bundles one |
++
++`evaluation/meter/probes/` holds the same three classes as the canonical copies used by the meter
++APK. Keep them identical:
++
++```bash
++evaluation/meter/scripts/sync_probes.sh          # copy canonical -> evaluation/android tree
++evaluation/meter/scripts/sync_probes.sh --check   # CI / pre-measurement: fail on drift
++```
++
++The `--check` mode is not decoration: while this kit was assembled the two trees drifted by exactly
++two API fixes (`isDeviceLightIdleMode`, `setLegacy(true)`), and a stale copy would have failed to
++compile in Studio with a confusing error.
++
++## 2. Call sites
++
++`MeshCrowdEvaluationHooks.kt` is the existing adapter for the recorder; the meter needs the same
++five moments. Everything else stays untouched — the probes never gate sensing.
++
++```kotlin
++// in the session owner, next to the recorder
++private val meter = MeshCrowdMeterHooks(context, label = "B2-r1")   // <leg>-<rep>
++
++fun onSessionStarted(...) {
++    meter.start()                       // before the first startScan(), so the window brackets it
++    recorder.beginSession(...)
++}
++
++// BluetoothLeScanner.startScan(...) — immediately before the call
++meter.onBleScanStarted()
++
++// ScanCallback.onBatchResults(results, clientMode)
++meter.onBleScanResults(results.size, results.map { it.device.address }.distinct().size)
++
++// Wi-Fi epoch: once per attempt, and once when the epoch's gate is satisfied
++meter.onEpochAttempted()
++meter.onWifiPoll(fresh = newestTimestamp > previousNewestTimestamp)
++meter.onWifiStartScan(accepted = wifi.startScan())   // record the boolean, do not ignore it
++if (epochGatePassed) meter.onEpochCompleted()
++
++fun onSessionStopped(...) {
++    val id = recorder.finishSession(summary)
++    meter.stop()                        // after the last write, so log growth includes it
++    return id
++}
++```
++
++Write the CSV path through `getExternalFilesDir("meter")` (the probes already default to it). That
++is what lets a **release** build be measured: `scripts/run_leg.sh` pulls
++`/sdcard/Android/data/<pkg>/files/meter` first and only falls back to `run-as` (debuggable builds).
++
++Optional, but it is what makes the numbers travel with the data: when the session closes, read the
++tail of `cadence-<label>.csv` and `storage-<label>.csv` and store the summary in the session JSON
++under `cost` (the schema now allows it, with `null` meaning "not measured" — never `0`).
++
++## 3. One discrepancy to settle before attributing anything to the campaign build
++
++`MeshCrowdEvaluationHooks.onSessionStarted` records `epochDurationMs = 10_000`, and
++`evaluation/config/experiment.config.json` also has `epoch.durationMs: 10000`, while the deployed
++app's epoch gate is the 15 s window the manuscript describes. Whichever is right, the instrumentation
++must bracket the *same* interval the field campaign used, because "epochs completed per hour" scales
++inversely with that constant. Confirm against the private module (`MeterConfig`/service constant),
++then fix the fragment and the config so all three agree — and note the corrected value in the
++measurement protocol. The meter APK uses 15 s (`meter-app/…/MeterConfig.kt`) and says so.
++
++Also do not carry `sampleIntervalMs: 200` from the config into prose: Android delivers BLE scan
++results in bursts (≈5 per 30 s under the platform throttle), which is why the classifier is
++specified as "three consecutive samples above the trigger" rather than as a 200 ms rate.
++
++## 4. Build and check
++
++```bash
++# 1) Route B APK (no Gradle needed): kotlinc -> d8 -> aapt2 -> zipalign -> apksigner
++evaluation/meter/scripts/build_apk_local.sh
++#    -> evaluation/meter/dist/MeshCrowdMeter-debug.apk (debug key; installs beside the campaign build)
++
++# 2) normal Gradle route, if you have AGP 8.5 / Gradle 8.7 + SDK 35
++cd evaluation/meter/meter-app && ./gradlew :app:assembleDebug
++
++# 3) analyser self-test (synthetic, labelled; never a measurement)
++cd evaluation/meter && bash tests/run_tests.sh
++```
++
++Verified here on 2026-10-05: `kotlinc 1.9.24` against `platforms/android-35/android.jar` compiles
++the three probes, the meter app, and this `MeshCrowdMeterHooks.kt` with 0 errors;
++`build_apk_local.sh` produced a signed 618,923-byte APK (`minSdkVersion=26`,
++`targetSdkVersion=35`) whose `classes.dex` contains all six app classes; `tests/run_tests.sh`
++passes 30 checks; `node validate.mjs` and `node tests/self-test.mjs` still pass with the schema
++change. **Nothing has been run on a handset**, so the first on-device run may need small fixes.
++
++## 5. Measurement run, once the build is on the phone
++
++```bash
++adb shell dumpsys deviceidle whitelist +org.meshcrowd.app       # keep Doze out of B1-B4
++settings put global adaptive_battery_management_enabled 0
++adb shell settings put global adaptive_charging_enabled 0
++for leg in B1-idle-baseline B2-sensing-screen-off B3-sensing-screen-on-40pct \
++           B4-two-phone-transit B5-forced-doze B6-battery-saver; do
++  evaluation/meter/scripts/run_leg.sh "$leg" 30 org.meshcrowd.app
++done
++python3 evaluation/meter/analysis/parse_leg.py runs/*/ --uid <uid>
++python3 evaluation/meter/analysis/meter_report.py runs/*/metrics.json --capacity-mah <mAh> --outdir results
++```
++
++Then the numbers go into `latex/measurement_tables.tex`'s structure (see the manuscript's Section V
++`Not instrumented` subsection, which should become the measured one). Keep `runs/` out of git:
++`.gitignore` already excludes `evaluation/meter/dist/` and `evaluation/meter/runs/`.
+diff --git a/evaluation/meter/README.md b/evaluation/meter/README.md
+new file mode 100644
+index 0000000..d0db310
+--- /dev/null
++++ b/evaluation/meter/README.md
+@@ -0,0 +1,220 @@
++# Measuring battery, storage, background operation, and usability for MeshCrowd
++
++This kit turns the reviewer's "no energy, background-operation, or usability measurements"
++into a real results section. Nothing here invents numbers: every value in the final tables comes
++from a log file this tooling produces, and the raw `adb` dumps are kept so the analysis can be
++re-run independently.
++
++There are two routes. **Choose A if you have the v2.1 app sources** (the repository you made
++public does *not* contain them — only `evaluation/android/` fragments), because A is what a
++referee will accept without qualification.
++
++| | What you measure | Paper wording it supports |
++|---|---|---|
++| **A. Instrumented campaign build** | the exact APK that produced E1–E5/G4, with two probe classes added | "measured on the deployment build" |
++| **B. Standalone meter APK** (this kit) | a minimal app that reproduces the scan duty cycle, foreground service, and log writing | "measured on a purpose-built harness reproducing the sensing duty cycle of the deployment build" |
++
++Route B is honest and still closes the reviewer item, but it must be described as a replication
++of the duty cycle, not as the campaign build. Do not let it become "the app" in the text.
++
++---
++
++## 0. One-time machine setup
++
++```bash
++# JDK 17 (Android Studio bundles one; needed for CLI builds too)
++java -version                     # expect 17.x
++# Android Studio (Ladybug or newer) -> Settings -> Languages & Frameworks -> Android SDK
++#   install: Android SDK Platform 35, Build-Tools 35.0.0, Platform-Tools (adb)
++# CLI-only alternative:
++#   download "commandlinetools-linux-*.zip", then
++sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
++export ANDROID_HOME=~/Android/Sdk        # or your path
++export PATH="$PATH:$ANDROID_HOME/platform-tools"
++```
++
++Phone side (do these before any measurement, and record them in `protocol-results.md`):
++Settings → Battery → **adaptive/optimised charging off**, Battery saver **off**,
++App info → MeshCrowd → Battery → **Unrestricted**; enable *Developer options* →
++**Disable background restrictions** if present; Settings → Network → **Wi-Fi scanning**
++and **Bluetooth scanning** (system location scanners) **off**, so system-level scanning is not
++confused with the app's; note the exact Android build (`adb shell getprop ro.build.version.incremental`).
++Airplane mode stays **off** (the app needs radios) but turn *mobile data off* for the storage
++baseline leg and *on* for the traffic leg — see §3.
++
++---
++
++## 1. Route A — instrument the campaign build
++
++Copy these two files into the app module next to the existing classes
++(the repo's `evaluation/android/src/main/java/org/meshcrowd/evaluation/` shows the house style):
++
++```
++probes/BatteryProbe.kt
++probes/ScanCadenceLogger.kt
++probes/StorageProbe.kt
++```
++
++and call them from the class that owns the sensing session, next to `EvaluationRecorder`:
++
++```kotlin
++private val battery  = BatteryProbe(applicationContext)
++private val cadence  = ScanCadenceLogger(applicationContext)
++private val storage  = StorageProbe(applicationContext)
++
++override fun onCreate() {                       // or the session start hook
++    battery.start("B2-idle-sensing"); cadence.start(); storage.start()
++    ...existing EvaluationHooks.onSessionStarted(...)
++}
++override fun onDestroy() {                      // session stop
++    battery.stop(); cadence.stop(); storage.stop()
++    ...existing EvaluationHooks.onSessionStopped(...)
++}
++```
++
++Also make sure the scan callbacks call `cadence.onBleScanResults(n)` /
++`cadence.onWifiScanResults(n)` and that the foreground service declares
++`android:foregroundServiceType="connectedDevice"` with the matching
++`FOREGROUND_SERVICE_CONNECTED_DEVICE` permission (Android 14+ refuses the service otherwise —
++and if that refusal is what you hit, that *is* a permission-burden result worth reporting).
++
++Then build the variant you always shipped:
++
++```bash
++./gradlew :app:assembleRelease        # or assembleDebug if you need run-as for file sizes
++adb install -r app/build/outputs/apk/release/app-release.apk
++```
++
++## 2. Route B — build the meter APK
++
++```
++meter-app/                       <- this kit's Gradle project
++```
++
++Open `meter-app/` in Android Studio (**File → Open**, not "New project") and let it sync, or:
++
++```bash
++cd meter-app
++gradle wrapper --gradle-version 8.9      # creates gradlew if you prefer CLI
++./gradlew :app:assembleDebug
++adb install -r app/build/outputs/apk/debug/app-debug.apk
++```
++
++Then in the app: press **Grant permissions**, then **Start meter**, choose the condition label
++(`B1-idle`, `B2-idle-sensing`, `B4-transit`, …), and leave the phone alone. The service writes
++`meter-<label>-<timestamp>.csv` into app-private storage; **Export ZIP** saves it through the
++Storage Access Framework.
++
++What the meter reproduces (edit `MeterConfig.kt` so the values match your real build — these are
++the campaign settings as the manuscript describes them):
++
++- 15 s scan epochs, 20-sample baseline windows
++- a 5-per-30 s BLE scan duty cycle, `SCAN_MODE_LOW_POWER`, batched reporting
++- `WifiManager.getScanResults()` polling at the epoch boundary, plus an explicit attempt at
++  `startScan()` whose **rejection is itself recorded** (this is the Android-9+ reality your
++  reviewer asked about)
++- foreground service with `never_freeze`, screen-state and Doze-transition timestamps
++- the same log-then-export path (`files/` + SAF) that `EvaluationRecorder` uses
++
++---
++
++## 3. The measurement legs
++
++Run each leg 3 times on a fresh charge cycle, in randomised order, phone on the tripod it was
++mounted on during the campaign, no charger, `dumpsys battery` temperature logged at start/end.
++
++| Leg | Screen | App state | What it answers |
++|---|---|---|---|
++| **B1** idle baseline | off | app not running | the floor everything is compared against |
++| **B2** sensing, screen off | off | meter running, radios scanning | the deployment case: background drain |
++| **B3** sensing, screen on | on, UI visible | meter running | what an operator watching the dashboard costs |
++| **B4** transit / mesh | off | two phones, RFCOMM+L2CAP sessions | the multi-node configuration |
++| **B5** forced Doze | off | meter running, last 30 min under `deviceidle force-idle` | does the duty cycle survive deep idle, and how much of it is lost |
++| **B6** battery saver on | off | meter running, system battery saver enabled | what a normal user's own settings do to coverage |
++
++Per leg, wrap the run with the capture script (it resets batterystats, logs state at 30 s, and
++collects everything into `runs/<leg>-<n>/`):
++
++```bash
++scripts/run_leg.sh B2-idle-sensing 300      # label, minutes
++```
++
++Storage and traffic need no extra app work: run `scripts/storage_net_snapshot.sh before <leg> <pkg>`
++and `... after <leg> <pkg>` around any leg, then `analysis/storage_delta.py` on the two files. It
++captures app-private bytes, the external files dir, per-UID `netstats` counters and the battery
++level at snapshot time. The app-side `StorageProbe` writes the same quantities plus its own
++TrafficStats line, which is the only source that works on a release build with no `run-as`.
++
++## 4. Usability (this also closes the consent item that has been pending)
++
++`protocol.md` §U has eight tasks against the real tabs, 6–10 non-author participants, SUS and
++UMUX-Lite after each session, and a consent form you can reuse for the release. Record:
++task completion, time on task, unassisted vs assisted, taps from clean install to first
++classification (that is the permission-burden number), and mis-taps. Do not skip the
++**first-run** leg: permission dialogs are a real deployment cost and no one has measured them.
++
++## 5. From logs to paper text
++
++```bash
++# one pass per leg directory -> <leg>/metrics.json (drain, current, cadence, storage, gaps)
++analysis/parse_leg.py runs/B2-sensing-screen-off_1 runs/B2-sensing-screen-off_2 \
++                      runs/B2-sensing-screen-off_3 --uid 10234
++
++# all legs -> results/measurements.tex + results/numbers.md
++analysis/meter_report.py runs/*/metrics.json --capacity-mah 4600 --outdir results
++
++# storage/traffic from the snapshot pair, if you took one
++analysis/storage_delta.py runs/B2-r1-before.txt runs/B2-r1-after.txt --minutes 30
++
++# usability
++analysis/usability_report.py --templates-dir-independent \
++    --tasks templates/usability_tasks.csv --survey templates/usability_survey.csv --outdir results
++```
++
++Run `tests/run_tests.sh` before trusting a real capture: it regenerates the labelled synthetic
++fixture in `tests/fixture/` and asserts every derived quantity, including that a leg with no
++app-side log yields `n/m` rather than a zero.
++
++`meter_report.py` emits `results/measurements.tex` (one row per leg: drain, net-of-idle, current,
++bursts, delivered results, epochs, gap median, storage growth; medians with the observed range over
++the repetitions, `n/m` where a capture was incomplete) and `results/numbers.md` with the sentences
++for Sections V and VI. `usability_report.py` emits the task table with Wilson intervals and the
++SUS/UMUX-Lite/NASA-TLX table. `latex/measurement_tables.tex` is the empty skeleton those outputs
++drop into -- never cite the skeleton, it contains no data.
++
++If you do not pass `--capacity-mah`, the table still reports \% per hour, the milliamperes read
++straight off `current_now` where the HAL exposes it, the `batterystats` per-UID mAh attribution, and
++every scan and epoch count; only the mAh/h column falls back to `n/m`, because that conversion is the
++one thing that needs a constant we cannot observe.
++
++## 6. What is verified here, and what is not
++
++Verified in this workspace (2026-10-05), because a JDK, kotlinc 1.9.24 and the raw Android SDK
++zips were installed under `/home/user`:
++
++* **The Kotlin compiles.** `MeterConfig.kt`, `MeterService.kt`, `MainActivity.kt` and the three
++  probe classes: `kotlinc -classpath platforms/android-35/android.jar`, 0 errors, 21 class files.
++  Two real API errors were found and fixed this way — `PowerManager.isLightDeviceIdleMode` is
++  actually `isDeviceLightIdleMode`, and `ScanSettings.setReportMode(REPORT_MODE_FIRST_MATCH)` is
++  `@hide`, so the meter now uses `setLegacy(true)` and counts deliveries itself instead.
++* **An APK was built and signed.** `scripts/build_apk_local.sh` (kotlinc → d8 → aapt2 → zipalign →
++  apksigner, no Gradle needed) produces `dist/MeshCrowdMeter-debug.apk`, 618,923 bytes, package
++  `org.meshcrowd.meter`, `minSdkVersion=26`, `targetSdkVersion=35`, debug-signed; `apksigner verify`
++  and `aapt2 dump badging` pass, and `classes.dex` contains all six app classes plus the Kotlin
++  stdlib. It is signed with a throwaway debug key, so it installs **alongside** your campaign build,
++  never over it.
++* **The analysers run and their arithmetic is pinned.** `tests/run_tests.sh`: 30 checks on a
++  labelled synthetic fixture, all passing, including the null-not-zero behaviour for an incomplete
++  capture.
++* **`run_leg.sh` and the shell helpers are `bash -n` clean.**
++
++Not verified, and not verifiable in this workspace:
++
++* **Nothing has run on a handset.** No emulator, no device, so the service's real behaviour under
++  Doze, the notification, and the SAF export are unexercised. Expect a first-run fix or two.
++* **Gradle itself was not run** (no network for the AGP artifacts here, and the wrapper needs your
++  Studio's AGP). `meter-app/` is written for AGP 8.5 / Gradle 8.7 / compileSdk 35; if your Studio
++  is older, bump or lower those two numbers and the same sources should build. `build_apk_local.sh`
++  is the fallback that needs no Gradle.
++* **The rated capacity and the `current_now` exposure are device-specific** — if your handset hides
++  the counter, the mA column stays `n/m` and the paper reports %/h only.
+diff --git a/evaluation/meter/analysis/meter_report.py b/evaluation/meter/analysis/meter_report.py
+new file mode 100755
+index 0000000..4e3c48a
+--- /dev/null
++++ b/evaluation/meter/analysis/meter_report.py
+@@ -0,0 +1,206 @@
++#!/usr/bin/env python3
++"""meter_report.py — per-leg metrics JSONs -> a LaTeX table and paste-ready prose.
++
++    analysis/meter_report.py runs/B1-idle-baseline_1/metrics.json runs/B2-*_1/metrics.json \
++        --capacity-mah 4600 --outdir results
++
++Reads what parse_leg.py wrote (one metrics.json per repetition). Two rules:
++ * Nothing is printed as a number unless a capture produced it. Missing -> "n/m", and the
++   prose line is dropped rather than softened into a vague claim.
++ * Across repetitions we report the median and the observed range (n=3 by protocol), never a
++   mean with two decimals, which would dress up three samples as precision.
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import re
++import statistics
++from pathlib import Path
++
++NF = "n/m"
++LEGS = ["B1", "B2", "B3", "B4", "B5", "B6"]
++LEG_NAME = {
++    "B1": "Idle baseline: screen off, meter app stopped",
++    "B2": "Sensing active, screen off (deployment case)",
++    "B3": "Sensing active, screen on at 40\\,\\% brightness",
++    "B4": "Two-handset transit/mesh session, screen off except unlocks",
++    "B5": "Forced Doze with sensing enabled (\\texttt{deviceidle force-idle})",
++    "B6": "Battery saver on, sensing enabled",
++}
++LEG_Q = {
++    "B1": "floor of this handset at these settings",
++    "B2": "background drain when nobody is looking at the phone",
++    "B3": "cost of the operator view",
++    "B4": "multi-node configuration",
++    "B5": "whether the duty cycle survives deep idle",
++    "B6": "what a normal user's settings do to coverage",
++}
++
++# (label, path in metrics.json, decimals, unit suffix)
++FIELDS = [
++    ("soc", ("soc", "soc_pct_per_h"), 2, " \\%/h"),
++    ("cur", ("current", "mA_discharge"), 1, " \\,mA"),
++    ("scans_req", ("cadence", "per_hour", "ble_scan_starts"), 0, ""),
++    ("scans_res", ("cadence", "per_hour", "ble_results"), 0, ""),
++    ("deliv", ("cadence", "delivered_per_start"), 2, ""),
++    ("epch", ("cadence", "per_hour", "epochs_completed"), 0, ""),
++    ("epcr", ("cadence", "epoch_completion_ratio"), 3, ""),
++    ("wratio", ("cadence", "wifi_startscan_accepted_ratio"), 3, ""),
++    ("gap", ("events", "epoch_gap_s", "median"), 1, ""),
++    ("store", ("storage", "bytes_growth_per_hour"), 0, ""),
++    ("mob", ("storage", "mobile_bytes_total"), 0, ""),
++]
++
++
++def dig(d, *keys):
++    cur = d
++    for k in keys:
++        if not isinstance(cur, dict) or k not in cur or cur[k] is None:
++            return None
++        cur = cur[k]
++    return cur if isinstance(cur, (int, float)) else None
++
++
++def agg(reps, *keys):
++    vals = [v for v in (dig(r, *keys) for r in reps) if isinstance(v, (int, float))]
++    if not vals:
++        return None, None
++    if len(vals) == 1:
++        return vals[0], None
++    return statistics.median(vals), [min(vals), max(vals)]
++
++
++def fmt(v, spread, unit="", dec=2):
++    if v is None:
++        return NF
++    s = f"{v:.{dec}f}{unit}"
++    if spread is not None:
++        s += f" [{spread[0]:.{dec}f}--{spread[1]:.{dec}f}]"
++    return s
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("metrics", nargs="+", type=Path, help="metrics.json files, one per repetition")
++    ap.add_argument("--capacity-mah", type=float, default=None,
++                    help="rated battery capacity, to turn %/h into mAh/h")
++    ap.add_argument("--outdir", type=Path, default=Path("results"))
++    a = ap.parse_args()
++
++    reps = []
++    for p in a.metrics:
++        data = json.loads(p.read_text(encoding="utf-8"))
++        for d in (data if isinstance(data, list) else [data]):
++            d.setdefault("_file", p.name)
++            reps.append(d)
++
++    by_leg: dict[str, list[dict]] = {}
++    for r in reps:
++        m = re.match(r"^([A-Z]\d)", (r.get("leg") or "").upper())
++        by_leg.setdefault(m.group(1) if m and m.group(1) in LEGS else "other", []).append(r)
++
++    base = by_leg.get("B1", [])
++    soc_base, _ = agg(base, "soc", "soc_pct_per_h") if base else (None, None)
++
++    rows, prose = [], []
++    for leg in LEGS:
++        rs = by_leg.get(leg, [])
++        if not rs:
++            continue
++        v = {f[0]: agg(rs, *f[1]) for f in FIELDS}
++        soc, soc_sp = v["soc"][0], v["soc"][1]
++        net = (round(soc - soc_base, 3), None) if (soc is not None and soc_base is not None) else (None, None)
++        mah = (round(soc / 100.0 * a.capacity_mah, 2), None) if (soc is not None and a.capacity_mah) else (None, None)
++        store, store_sp = v["store"]
++        cells = {
++            "n": len(rs),
++            "soc": fmt(soc, soc_sp, " \\%/h"),
++            "mah": fmt(mah[0], None, " \\,mAh/h", 2),
++            "net": fmt(net[0], None, " \\pp", 2),
++            "cur": fmt(v["cur"][0], v["cur"][1], " \\,mA", 1),
++            "scans": fmt(v["scans_req"][0], None, "/h", 0),
++            "res": fmt(v["scans_res"][0], None, "/h", 0),
++            "epch": fmt(v["epch"][0], None, "/h", 0),
++            "epcr": fmt(v["epcr"][0], None, "", 3),
++            "wratio": fmt(v["wratio"][0], None, "", 3),
++            "gap": fmt(v["gap"][0], None, "\\,s", 1),
++            "store": fmt((store / 1024.0) if store is not None else None, None, " \\,kB/h", 1),
++        }
++        rows.append({"leg": leg, **cells})
++        bits = []
++        if soc is not None:
++            bits.append("drain " + fmt(soc, soc_sp, r" \%/h"))
++        if net[0] is not None:
++            bits.append(f"{net[0]:+.2f}\\,pp against the idle baseline")
++        if v["cur"][0] is not None:
++            bits.append(f"{v['cur'][0]:.1f}\\,mA mean discharge current")
++        if v["scans_req"][0] is not None:
++            bits.append(f"{v['scans_req'][0]:.0f} scan bursts/h and "
++                        f"{v['scans_res'][0]:.0f} result batches/h "
++                        f"({fmt(v['deliv'][0], None, '', 2)} per burst)")
++        if v["epch"][0] is not None:
++            epc = (f" at {v['epcr'][0]:.3f} of attempted" if v["epcr"][0] is not None else "")
++            bits.append(f"{v['epch'][0]:.0f} epochs completed/h{epc}")
++        if v["wratio"][0] is not None:
++            bits.append(f"active Wi-Fi scan requests honoured {v['wratio'][0]:.3f} of the time")
++        if store is not None:
++            bits.append(f"log storage grew {store/1024.0:.1f}\\,kB/h")
++        if v["mob"][0] is not None:
++            bits.append(f"mobile traffic {v['mob'][0]:.0f}\\,B for the whole leg")
++        prose.append(f"**{leg}** ({LEG_Q[leg]}): " + "; ".join(bits) + ".")
++
++    a.outdir.mkdir(parents=True, exist_ok=True)
++    tex = ["% GENERATED by analysis/meter_report.py - do not edit by hand.",
++           "% n/m means the quantity was not present in the capture (see gaps[] in metrics.json).",
++           "\\begin{table*}[t]", "\\centering",
++           "\\caption{Background-operation cost per measurement leg. Values are medians over the "
++           "repetitions, with the observed range in brackets; drain is percent of rated capacity per "
++           "hour with the screen off. \\texttt{n/m} marks a quantity the capture did not yield.}",
++           "\\label{tab:cost}", "\\small",
++           "\\begin{tabular}{llrrrrrrrrrr}", "\\toprule",
++           "Leg & $n$ & Drain & mAh/h & vs.\\ B1 & Current & Bursts/h & Results/h & Epochs/h "
++           "& Compl.\\ & Gap & Store \\\\", "\\midrule"]
++    for r in rows:
++        tex.append("  {leg} & {n} & {soc} & {mah} & {net} & {cur} & {scans} & {res} & {epch} & "
++                   "{epcr} & {gap} & {store} \\\\".format(**r))
++    if not rows:
++        tex.append("  \\multicolumn{12}{c}{No leg directories analysed yet.} \\\\")
++    tex += ["\\bottomrule", "\\end{tabular}", "\\end{table*}"]
++    (a.outdir / "measurements.tex").write_text("\n".join(tex) + "\n", encoding="utf-8")
++
++    md = ["# Measured numbers (paste-ready)", "",
++          "Generated by `analysis/meter_report.py`. `n/m` = not measured.",
++          "**No value below is estimated, imputed, or taken from the repository's simulation "
++          "harness.**", "",
++          f"Capacity used for mAh/h: {a.capacity_mah if a.capacity_mah else 'not supplied (mAh/h = n/m)'}.",
++          "", "## Legs", ""]
++    md += prose or ["- no legs analysed yet"]
++    md += ["", "## Sentences for the manuscript", "",
++           "Use only sentences whose numbers are present; delete the rest rather than hedging.", ""]
++    if soc_base is not None:
++        md.append("- With sensing active and the display off, the handset lost \\emph{<B2 drain>} of "
++                  "battery per hour against \\emph{<B1 drain>} in the idle baseline "
++                  "(Table~\\ref{tab:cost}); the same configuration with the operator view open cost "
++                  "\\emph{<B3 drain>}.")
++    md.append("- Background scheduling is not cosmetic: under forced Doze the meter completed "
++              "\\emph{<B5 epochs/h>} of \\emph{<B2 epochs/h>} sensing epochs, and \\emph{<n>} of the "
++              "epoch gaps exceeded twice the nominal interval.")
++    md.append("- The meter wrote \\emph{<kB/h>} of session log per hour and generated "
++              "\\emph{<B>} bytes of mobile traffic over the leg, which is the quantitative form of "
++              "the claim that observation stays on the handset.")
++    md.append("")
++    (a.outdir / "numbers.md").write_text("\n".join(md) + "\n", encoding="utf-8")
++
++    print(f"wrote {a.outdir/'measurements.tex'} and {a.outdir/'numbers.md'}")
++    print("legs with data: " + (", ".join(f"{r['leg']}(n={r['n']})" for r in rows) or "none"))
++    for r in rows:
++        print(f"  {r['leg']}: drain {r['soc']} | net {r['net']} | cur {r['cur']} | "
++              f"bursts {r['scans']} | epochs {r['epch']} | store {r['store']}")
++    if "other" in by_leg:
++        print(f"  (ignored {len(by_leg['other'])} file(s) whose leg name matched none of B1-B6)")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/evaluation/meter/analysis/parse_leg.py b/evaluation/meter/analysis/parse_leg.py
+new file mode 100755
+index 0000000..a51c0dc
+--- /dev/null
++++ b/evaluation/meter/analysis/parse_leg.py
+@@ -0,0 +1,478 @@
++#!/usr/bin/env python3
++"""Turn one measurement leg directory into a metrics JSON.
++
++Expected layout, as written by scripts/run_leg.sh:
++
++    <leg>/battery.csv                     shell 5 s sampler  (columns below)
++    <leg>/storage.csv                     shell 60 s sampler
++    <leg>/batterystats-before.txt         dumpsys (cumulative, pre-reset)
++    <leg>/batterystats-after.txt          dumpsys, human readable
++    <leg>/batterystats-checkin.txt        kept for manual work, not parsed here
++    <leg>/netstats-{before,after}.txt     per-UID counters
++    <leg>/deviceidle-after.txt
++    <leg>/app-logs/battery-<label>.csv    app-side, authoritative if present
++    <leg>/app-logs/cadence-<label>.csv    scans/epochs actually obtained
++    <leg>/app-logs/storage-<label>.csv    bytes + TrafficStats
++    <leg>/app-logs/events-<label>.csv     service lifecycle and startScan outcomes
++
++Header contracts:
++  app battery : elapsed_s,level,scale,voltage_duV,temperature_dC,status,plugged,
++                current_uA,device_idle,light_idle,screen
++  shell battery: ...,current_uA,idle_state,light_idle,screen,timestamp
++  cadence     : window_start_s,ble_scan_starts,ble_results,ble_links,wifi_polls,
++                wifi_polls_fresh,wifi_startscan_tried,wifi_startscan_accepted,
++                epochs_attempted,epochs_completed,screen_on,device_idle,light_idle
++  storage     : elapsed_s,files_bytes,cache_bytes,nobackup_bytes,log_files,
++                log_bytes_max,log_bytes_total,traffic   (traffic is ';'-joined)
++
++Rule: a quantity that cannot be extracted is null, with a note. Never zero.
++"""
++from __future__ import annotations
++
++import argparse
++import csv
++import json
++import re
++import statistics
++from pathlib import Path
++
++# ------------------------------------------------------------------ utilities
++
++
++def _num(s):
++    s = ("" if s is None else str(s)).strip()
++    if s in ("", "-", "?", "NA", "null", "N/A"):
++        return None
++    try:
++        return float(s)
++    except ValueError:
++        return None
++
++
++def _int(s):
++    v = _num(s)
++    return None if v is None else int(v)
++
++
++def read_csv_rows(path: Path) -> list[dict]:
++    if not path or not path.exists():
++        return []
++    with path.open(newline="", encoding="utf-8", errors="replace") as fh:
++        return [r for r in csv.DictReader(fh)]
++
++
++def find_first(root: Path, patterns: list[str]) -> Path | None:
++    for pat in patterns:
++        hits = sorted(root.glob(pat))
++        if hits:
++            return hits[0]
++    return None
++
++
++# ---------------------------------------------------------------- battery side
++
++
++def normalise_battery(rows: list[dict], source: str) -> list[dict]:
++    """Map either sampler onto one shape.
++
++    charging: plugged != 0, or status in {2 charging, 3 full}
++    idle    : app side device_idle==1; shell side mState==4 (STATE_IDLE) or light==1
++    screen  : app side on/off; shell side mWakefulness Awake/Dozing/Asleep
++    """
++    out = []
++    for r in rows:
++        t = _num(r.get("elapsed_s"))
++        if t is None:
++            continue
++        plugged = _int(r.get("plugged"))
++        status = _int(r.get("status"))
++        charging = (plugged not in (None, 0)) or (status in (2, 3))
++        if "idle_state" in r:
++            idle = (_int(r.get("idle_state")) == 4) or (_int(r.get("light_idle")) == 1)
++        else:
++            idle = (_int(r.get("device_idle")) == 1) or (_int(r.get("light_idle")) == 1)
++        scr = (r.get("screen") or "").strip().lower()
++        if scr in ("on", "awake"):
++            screen_on = True
++        elif scr in ("off", "asleep", "dozing"):
++            screen_on = False
++        else:
++            screen_on = None
++        lvl, scl = _num(r.get("level")), _num(r.get("scale")) or 100.0
++        cur = _num(r.get("current_uA"))
++        if cur is not None and cur < 0:
++            cur = None if cur <= -2_000_000 else cur     # -999999-ish sentinels
++        temp = _num(r.get("temperature_dC"))
++        out.append({"t": t, "level": lvl, "scale": scl, "current_ua": cur,
++                    "temp_dc": temp, "charging": charging, "idle": idle,
++                    "screen_on": screen_on, "source": source})
++    return out
++
++
++def load_battery(leg: Path) -> tuple[list[dict], str | None]:
++    app = find_first(leg / "app-logs", ["battery-*.csv", "**/battery-*.csv"])
++    if app:
++        rows = normalise_battery(read_csv_rows(app), "app")
++        if len(rows) >= 3:
++            return rows, app.name
++    shell = leg / "battery.csv"
++    rows = normalise_battery(read_csv_rows(shell), "shell")
++    if len(rows) >= 3:
++        return rows, "battery.csv"
++    return [], None
++
++
++def soc_metrics(pts: list[dict]) -> dict:
++    """Percent-of-capacity per hour, unplugged samples only."""
++    usable = [p for p in pts if p["level"] is not None and not p["charging"]]
++    if len(usable) < 2:
++        return {"soc_pct_per_h": None, "n_points": len(usable),
++                "note": "fewer than two unplugged SOC samples - charger still connected?"}
++    span_h = (usable[-1]["t"] - usable[0]["t"]) / 3600.0
++    if span_h <= 0:
++        return {"soc_pct_per_h": None, "n_points": len(usable), "note": "zero-length window"}
++    delta = (usable[0]["level"] - usable[-1]["level"]) / usable[0]["scale"] * 100.0
++    if delta < 0:
++        return {"soc_pct_per_h": None, "n_points": len(usable),
++                "note": "SOC rose during the leg (charging or calibration jump)"}
++    # SOC is an integer: the useful caveat is how much one step moves the answer,
++    # not the per-sample rate (which is 0 between steps and huge at a step).
++    steps = sum(1 for a, b in zip(usable, usable[1:]) if b["level"] != a["level"])
++    per_step = (1.0 / usable[0]["scale"] * 100.0) / span_h if span_h > 0 else None
++    rate = delta / span_h
++    return {
++        "soc_pct_per_h": round(rate, 3),
++        "span_h": round(span_h, 4),
++        "soc_delta_pct": round(delta, 3),
++        "soc_steps_observed": steps,
++        "quantisation_pct_per_h_per_step": round(per_step, 3) if per_step is not None else None,
++        "minutes_needed_for_1pp_resolution": round(60.0 / rate, 1) if rate > 0 else None,
++        "n_points": len(usable),
++        "resolution_note": ("below the quantisation floor - extend the leg"
++                            if per_step is not None and rate < 2 * per_step else "ok"),
++    }
++
++
++def current_metrics(pts: list[dict]) -> dict:
++    """CURRENT_NOW, only if the HAL exposes it; the drain in mA needs no SOC model."""
++    neg = [p["current_ua"] for p in pts if p["current_ua"] is not None and p["current_ua"] < 0 and not p["charging"]]
++    if len(neg) < 3:
++        return {"mA_discharge": None, "mAh_total": None,
++                "note": "power_supply/current_now unavailable or unreadable from the app on this build"}
++    mean_ua = statistics.mean(neg)
++    span_s = pts[-1]["t"] - pts[0]["t"]
++    return {
++        "mA_discharge": round(-mean_ua / 1000.0, 2),
++        "mA_iqr": ([round(x / 1000.0, 2) for x in statistics.quantiles([-c for c in neg],
++                                                                n=4, method="inclusive")][::2]
++                    if len(neg) >= 4 else None),
++        "mAh_total": round(-mean_ua / 1000.0 * (span_s / 3600.0), 3),
++        "n": len(neg),
++    }
++
++
++def split_metrics(pts: list[dict]) -> dict:
++    def grp(f):
++        return [p for p in pts if f(p)]
++
++    def rate(sub):
++        return soc_metrics(sub).get("soc_pct_per_h")
++
++    temps = [p["temp_dc"] for p in pts if p["temp_dc"] is not None]
++    return {
++        "n_total": len(pts),
++        "n_screen_on": len(grp(lambda p: p["screen_on"] is True)),
++        "n_screen_off": len(grp(lambda p: p["screen_on"] is False)),
++        "n_idle": len(grp(lambda p: p["idle"])),
++        "soc_pct_per_h_screen_on": rate(grp(lambda p: p["screen_on"] is True)),
++        "soc_pct_per_h_screen_off": rate(grp(lambda p: p["screen_on"] is False)),
++        "soc_pct_per_h_idle": rate(grp(lambda p: p["idle"])),
++        "temp_c_mean": round(statistics.mean(temps) / 10.0, 2) if temps else None,
++        "temp_c_range": [round(min(temps) / 10.0, 1), round(max(temps) / 10.0, 1)] if temps else None,
++    }
++
++
++# ---------------------------------------------------------------- cadence side
++
++
++def load_cadence(leg: Path) -> dict:
++    p = find_first(leg / "app-logs", ["cadence-*.csv", "**/cadence-*.csv"])
++    if not p:
++        return {"note": "no cadence CSV - the app-side logger did not run, so scans/hour is not measured"}
++    rows = read_csv_rows(p)
++    if not rows:
++        return {"note": f"{p.name} is empty"}
++    cols = ("ble_scan_starts", "ble_results", "ble_links", "wifi_polls", "wifi_polls_fresh",
++            "wifi_startscan_tried", "wifi_startscan_accepted", "epochs_attempted", "epochs_completed")
++    tot = {c: int(sum(v for v in (_int(r.get(c)) for r in rows) if v is not None)) for c in cols}
++    span_s = (_num(rows[-1].get("window_start_s")) or 0) - (_num(rows[0].get("window_start_s")) or 0) + 60.0
++    per_h = {c: round(v / (span_s / 3600.0), 2) if span_s > 0 else None for c, v in tot.items()}
++    on = [r for r in rows if _int(r.get("screen_on")) == 1]
++    off = [r for r in rows if _int(r.get("screen_on")) != 1]
++    idle = [r for r in rows if _int(r.get("device_idle")) == 1]
++
++    def starts(rs):
++        return int(sum(v for v in (_int(r.get("ble_scan_starts")) for r in rs) if v is not None))
++
++    def res(rs):
++        return int(sum(v for v in (_int(r.get("ble_results")) for r in rs) if v is not None))
++
++    nwin = max(len(rows), 1)
++    return {
++        "windows": len(rows),
++        "span_s": round(span_s, 1),
++        "totals": tot,
++        "per_hour": per_h,
++        "starts_requested": tot["ble_scan_starts"],
++        "results_delivered": tot["ble_results"],
++        "delivered_per_start": round(tot["ble_results"] / tot["ble_scan_starts"], 3) if tot["ble_scan_starts"] else None,
++        "wifi_startscan_accepted_ratio": (round(tot["wifi_startscan_accepted"] / tot["wifi_startscan_tried"], 4)
++                                          if tot["wifi_startscan_tried"] else None),
++        "epoch_completion_ratio": (round(tot["epochs_completed"] / tot["epochs_attempted"], 4)
++                                   if tot["epochs_attempted"] else None),
++        "screen_on_starts_per_window": round(starts(on) / len(on), 3) if on else None,
++        "screen_off_starts_per_window": round(starts(off) / len(off), 3) if off else None,
++        "results_per_start_screen_on": round(res(on) / starts(on), 3) if on and starts(on) else None,
++        "results_per_start_screen_off": round(res(off) / starts(off), 3) if off and starts(off) else None,
++        "results_per_start_idle": round(res(idle) / starts(idle), 3) if idle and starts(idle) else None,
++        "idle_windows": len(idle),
++        "source": p.name,
++    }
++
++
++def load_events(leg: Path, epoch_nominal_s: float = 15.0) -> dict:
++    """Event markers give us the timing the window aggregates cannot: epoch gaps."""
++    p = find_first(leg / "app-logs", ["events-*.csv", "**/events-*.csv"])
++    if not p:
++        return {"note": "no events CSV"}
++    rows = read_csv_rows(p)
++    counts, times = {}, []
++    for r in rows:
++        vals = [v for v in r.values()]
++        name, t = "", None
++        for v in vals:
++            x = (v or "").strip()
++            if x and _num(x) is None:
++                name = x
++            elif _num(x) is not None and t is None:
++                t = _num(x)
++        if name:
++            counts[name] = counts.get(name, 0) + 1
++            if name == "epoch_attempted" and t is not None:
++                times.append(t)
++    out: dict = {"events": counts or None, "source": p.name}
++    gaps = [round(b - a, 2) for a, b in zip(times, times[1:]) if b > a]
++    gaps = [g for g in gaps if g < 3600]
++    if len(gaps) >= 3:
++        gs = sorted(gaps)
++        out["epoch_gap_s"] = {
++            "median": round(statistics.median(gs), 2),
++            "p95": round(gs[max(0, min(len(gs) - 1, round(0.95 * (len(gs) - 1))))], 2),
++            "max": round(gs[-1], 2),
++            "n_gaps": len(gs),
++            "missed_epochs_gt_2x_nominal": sum(1 for g in gs if g > 2 * epoch_nominal_s),
++            "nominal_s": epoch_nominal_s,
++        }
++    else:
++        out["epoch_gap_s"] = None
++        out["gap_note"] = "fewer than three epoch_attempted markers - gaps not reported"
++    return out
++
++
++# ---------------------------------------------------------------- storage side
++
++
++def load_storage(leg: Path) -> dict:
++    p = find_first(leg / "app-logs", ["storage-*.csv", "**/storage-*.csv"])
++    rows = read_csv_rows(p) if p else []
++    src = p.name if p else None
++    if not rows:
++        rows, src = read_csv_rows(leg / "storage.csv"), "storage.csv"
++    if not rows:
++        return {"note": "no storage CSV - byte growth is not measured"}
++
++    def col(name):
++        return [v for v in (_num(r.get(name)) for r in rows) if v is not None]
++
++    span_s = (_num(rows[-1].get("elapsed_s")) or 0) - (_num(rows[0].get("elapsed_s")) or 0)
++    per = {}
++    for c in ("files_bytes", "cache_bytes", "nobackup_bytes", "log_bytes_total", "session_files"):
++        v = col(c)
++        if v:
++            per[c] = int(v[-1])
++    tot_first = sum((_num(rows[0].get(c)) or 0) for c in ("files_bytes", "cache_bytes", "nobackup_bytes"))
++    tot_last = sum((_num(rows[-1].get(c)) or 0) for c in ("files_bytes", "cache_bytes", "nobackup_bytes"))
++    out = {
++        "source": src,
++        "n_rows": len(rows),
++        "bytes_final": {k: v for k, v in per.items() if k != "session_files"},
++        "log_files_final": int(_num(rows[-1].get("log_files")) or _num(rows[-1].get("session_files")) or 0),
++        "bytes_growth": int(tot_last - tot_first),
++        "bytes_growth_per_hour": round((tot_last - tot_first) / (span_s / 3600.0), 1) if span_s > 30 else None,
++        "max_log_bytes": int(max(col("log_bytes_max") or [0])),
++    }
++    if span_s <= 30:
++        out["note"] = "storage window shorter than 30 s - growth per hour not reported"
++    tr = {}
++    for key in ("mobile_rx", "mobile_tx", "uid_rx", "uid_tx"):
++        vals = []
++        for r in rows:
++            blob = r.get("traffic") or ""
++            for tok in blob.replace(",", ";").split(";"):
++                if tok.startswith(key + "="):
++                    v = _num(tok.split("=", 1)[1])
++                    if v is not None and v >= 0:
++                        vals.append(v)
++        if vals:
++            tr[key + "_delta"] = int(vals[-1] - vals[0])
++    if tr:
++        out["traffic"] = tr
++        out["mobile_bytes_total"] = int((tr.get("mobile_rx_delta", 0)) + (tr.get("mobile_tx_delta", 0)))
++        out["uid_bytes_total"] = int((tr.get("uid_rx_delta", 0)) + (tr.get("uid_tx_delta", 0)))
++    else:
++        out["traffic"] = None
++        out["traffic_note"] = "TrafficStats not in this capture (shell sampler does not read them)"
++    return out
++
++
++# --------------------------------------------------- batterystats (best effort)
++
++RE_MAH = re.compile(r"^\s{2,}([A-Za-z][A-Za-z /_.-]{1,38}):\s*(-?\d+\.\d+)\s*$")
++RE_WAKE = re.compile(r"Wake lock\s+(\S+?):\s*\+?([0-9][0-9dhms. ]*?)\s*\((\d+) times\)")
++RE_DUR = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
++
++
++def _uid_matches(name: str, uid: str | None) -> bool:
++    """`u0a234` and `10234` are the same app: uid = user*100000 + 10000 + appId."""
++    if not uid:
++        return True
++    if uid in name:
++        return True
++    m = re.search(r"u(\d+)a(\d+)", name)
++    if m:
++        return int(m.group(1)) * 100000 + 10000 + int(m.group(2)) == int(uid)
++    return False
++
++
++def parse_batterystats(path: Path, uid: str | None) -> dict:
++    if not path or not path.exists():
++        return {"note": "no human-readable batterystats dump in this leg"}
++    txt = path.read_text(encoding="utf-8", errors="replace")
++    out: dict = {}
++    in_est, est = False, {}
++    for ln in txt.splitlines():
++        if "Estimated power use (mAh)" in ln:
++            in_est = True
++            continue
++        if in_est:
++            if ln.strip() and not ln.startswith(" "):
++                break
++            m = RE_MAH.match(ln)
++            if m:
++                est[m.group(1).strip().lower()] = float(m.group(2))
++            elif re.match(r"^\s*Uid \d+", ln):
++                m2 = re.match(r"^\s*Uid (\d+)(?: \(([^)]*)\))?:\s*(-?\d+\.\d+)", ln)
++                if m2:
++                    est[f"uid {m2.group(1)}"] = float(m2.group(3))
++    out["estimated_mah_tree"] = est or None
++    if uid and est:
++        out["estimated_mah_for_uid"] = {k: v for k, v in est.items()
++                                        if uid in k or _uid_matches(k, uid)} or None
++    wakes = {}
++    for m in RE_WAKE.finditer(txt):
++        if not _uid_matches(m.group(1), uid):
++            continue
++        secs = 0.0
++        for v, unit in RE_DUR.findall(m.group(2)):
++            v = float(v)
++            secs += v * 3600 if unit == "h" else v * 60 if unit == "m" else v / 1000 if unit == "ms" else v
++        wakes[m.group(1)] = wakes.get(m.group(1), 0.0) + secs
++    out["wake_lock_seconds"] = {k: round(v, 1) for k, v in sorted(wakes.items(), key=lambda x: -x[1])[:10]} or None
++    m = re.search(r"Time on battery:\s*\+?([\dhms. +]+)", txt)
++    if m:
++        out["time_on_battery_raw"] = m.group(1).strip()
++    miss = [k for k, v in out.items() if v is None]
++    if miss:
++        out["note"] = ("not present in this dump (OEM-specific formatting): " + ", ".join(miss)
++                       + "; the drain figures above come from the sampler CSVs, not from this file")
++    return out
++
++
++def parse_netstats(before: Path, after: Path, uid: str | None) -> dict:
++    """Netstats deltas, kept separate because the reset already isolates the leg."""
++    def grab(path: Path) -> dict:
++        if not path.exists():
++            return {}
++        txt = path.read_text(encoding="utf-8", errors="replace")
++        res = {}
++        for m in re.finditer(r"uid=(\d+)[^\n]*", txt):
++            pass
++        for m in re.finditer(r"^\s*(\d{4,6}):\s*(.*)$", txt, re.M):
++            line = m.group(2)
++            rx = re.search(r"rxBytes=(\d+)", line)
++            tx = re.search(r"txBytes=(\d+)", line)
++            if rx and tx and (uid is None or m.group(1) == uid):
++                res[m.group(1)] = [int(rx.group(1)), int(tx.group(1))]
++        return res
++    b, a = grab(before), grab(after)
++    if not a:
++        return {"note": "netstats lines not recognised; use the app-side TrafficStats instead"}
++    out = {"after": a}
++    if b and set(a) == set(b):
++        out["delta"] = {u: [a[u][0] - b[u][0], a[u][1] - b[u][1]] for u in a}
++        out["delta_note"] = "rx,tx bytes over the window (batterystats/netstats were reset at start)"
++    else:
++        out["delta_note"] = "no matching before-snapshot; only the after counters are reported"
++    return out
++
++
++# --------------------------------------------------------------------- driver
++
++
++def analyse(leg: Path, uid: str | None = None) -> dict:
++    pts, bsrc = load_battery(leg)
++    m = {
++        "leg": leg.name,
++        "battery_source": bsrc,
++        "duration_min": round((pts[-1]["t"] - pts[0]["t"]) / 60.0, 2) if len(pts) > 1 else None,
++        "soc": soc_metrics(pts) if pts else {"soc_pct_per_h": None, "note": "no battery CSV"},
++        "current": current_metrics(pts) if pts else {"mA_discharge": None},
++        "states": split_metrics(pts) if pts else {},
++        "cadence": load_cadence(leg),
++        "storage": load_storage(leg),
++        "events": load_events(leg),
++        "batterystats": parse_batterystats(leg / "batterystats-after.txt", uid),
++        "netstats": parse_netstats(leg / "netstats-before.txt", leg / "netstats-after.txt", uid),
++    }
++    m["gaps"] = [k for k in ("soc", "current", "cadence", "storage", "batterystats")
++                 if isinstance(m[k], dict) and m[k].get("note")]
++    return m
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser(description="leg directory -> metrics JSON")
++    ap.add_argument("legs", nargs="+", type=Path)
++    ap.add_argument("--uid", default=None, help="numeric Android UID, for the batterystats subtree")
++    ap.add_argument("--out", type=Path, default=None, help="write JSON here as well (default <leg>/metrics.json)")
++    a = ap.parse_args()
++    allm = []
++    for leg in a.legs:
++        if not leg.is_dir():
++            print(f"skip {leg}: not a directory", flush=True)
++            continue
++        m = analyse(leg, a.uid)
++        dst = a.out if a.out and len(a.legs) == 1 else leg / "metrics.json"
++        dst.write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
++        allm.append(m)
++        print(f"{leg.name}: {m['duration_min']} min of samples -> {dst}")
++        print(f"   drain {m['soc'].get('soc_pct_per_h')} %/h | current {m['current'].get('mA_discharge')} mA"
++              f" | scans/h {m['cadence'].get('per_hour', {}).get('ble_scan_starts')}"
++              f" | store {m['storage'].get('bytes_growth_per_hour')} B/h"
++              f" | gaps {m['gaps'] or 'none'}", flush=True)
++    if a.out and len(a.legs) > 1:
++        a.out.write_text(json.dumps(allm, indent=2) + "\n", encoding="utf-8")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/evaluation/meter/analysis/storage_delta.py b/evaluation/meter/analysis/storage_delta.py
+new file mode 100755
+index 0000000..13d4e90
+--- /dev/null
++++ b/evaluation/meter/analysis/storage_delta.py
+@@ -0,0 +1,66 @@
++#!/usr/bin/env python3
++"""storage_delta.py - growth between two storage_net_snapshot.sh captures.
++
++    analysis/storage_delta.py runs/B2-r1-before.txt runs/B2-r1-after.txt --minutes 30
++
++Numbers come from the snapshot files only; anything a device did not report stays null.
++"""
++from __future__ import annotations
++import argparse, json, re
++from pathlib import Path
++
++KEYS = ("du_files_bytes", "du_cache_bytes", "du_no_backup_bytes", "file_count")
++
++
++def grab(path: Path) -> dict:
++    out = {}
++    if not path.exists():
++        return out
++    txt = path.read_text(encoding="utf-8", errors="replace")
++    for k in KEYS:
++        m = re.search(rf"^{k}:\s*(-?\d+|unavailable)\s*$", txt, re.M)
++        if m and m.group(1).isdigit():
++            out[k] = int(m.group(1))
++    # external files dir line from `du -sb`
++    m = re.search(r"^(\d+)\s+/sdcard/Android/data/\S+/files\s*$", txt, re.M)
++    if m:
++        out["external_files_bytes"] = int(m.group(1))
++    m = re.search(r"^level: (\d+)", txt, re.M)
++    if m:
++        out["soc_level"] = int(m.group(1))
++    return out
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("before", type=Path)
++    ap.add_argument("after", type=Path)
++    ap.add_argument("--minutes", type=float, default=None, help="leg duration, for per-hour rates")
++    a = ap.parse_args()
++    b, aft = grab(a.before), grab(a.after)
++    if not b or not aft:
++        print(json.dumps({"error": "one of the snapshots has no numeric lines - re-run the capture"}, indent=2))
++        return 1
++    dur_h = (a.minutes / 60.0) if a.minutes else None
++    res = {}
++    for k in sorted(set(b) | set(aft)):
++        vb, va = b.get(k), aft.get(k)
++        if vb is None or va is None:
++            res[k] = {"before": vb, "after": va, "delta": None, "note": "not reported by the device"}
++            continue
++        d = {"before": vb, "after": va, "delta": va - vb}
++        if k != "soc_level" and dur_h:
++            d["delta_per_hour"] = round((va - vb) / dur_h, 1)
++        res[k] = d
++    tot_b = sum(v for k, v in b.items() if k.startswith("du_")) + b.get("external_files_bytes", 0)
++    tot_a = sum(v for k, v in aft.items() if k.startswith("du_")) + aft.get("external_files_bytes", 0)
++    res["total_app_bytes"] = {"before": tot_b, "after": tot_a, "delta": tot_a - tot_b}
++    if dur_h:
++        res["total_app_bytes"]["delta_per_hour"] = round((tot_a - tot_b) / dur_h, 1)
++        res["total_app_bytes"]["per_month_at_12min_per_day"] = round((tot_a - tot_b) / dur_h * 0.2 * 30, 1)
++    print(json.dumps(res, indent=2))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/evaluation/meter/analysis/usability_report.py b/evaluation/meter/analysis/usability_report.py
+new file mode 100755
+index 0000000..3d8fb82
+--- /dev/null
++++ b/evaluation/meter/analysis/usability_report.py
+@@ -0,0 +1,209 @@
++#!/usr/bin/env python3
++"""Usability leg: task performance + SUS + UMUX-Lite + NASA-TLX -> LaTeX and prose.
++
++Two CSVs (templates in ../templates):
++  usability_tasks.csv  one row per (participant, task)
++  usability_survey.csv one row per participant
++
++Statistics deliberately conservative:
++ * task success uses a Wilson score interval, not a normal approximation - with
++   n <= 10 the normal approximation is wrong in both directions;
++ * SUS is computed with the canonical transformation (odd items x-1, even items 5-x,
++   sum x 2.5) and reported as a median and an interquartile range, not a bare mean;
++ * a sample of ten or fewer is labelled a pilot in every sentence we emit. We do not
++   let a 6-person study sound like an evaluation.
++"""
++from __future__ import annotations
++
++import argparse
++import csv
++import json
++import math
++import statistics
++from collections import defaultdict
++from pathlib import Path
++
++Z = 1.959963984540054
++
++
++def wilson(k: int, n: int, z: float = Z):
++    if n == 0:
++        return None
++    p = k / n
++    den = 1 + z * z / n
++    c = (p + z * z / (2 * n)) / den
++    h = (z / den) * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
++    return (round(max(0.0, c - h) * 100, 1), round(min(1.0, c + h) * 100, 1))
++
++
++def median_iqr(vals):
++    vals = [v for v in vals if v is not None]
++    if not vals:
++        return None, None
++    if len(vals) == 1:
++        return round(float(vals[0]), 2), None
++    q = statistics.quantiles(vals, n=4, method="inclusive")
++    return round(statistics.median(vals), 2), [round(q[0], 2), round(q[2], 2)]
++
++
++def num(row, key, cast=float, default=None):
++    v = (row.get(key) or "").strip()
++    if v == "":
++        return default
++    try:
++        return cast(float(v))
++    except ValueError:
++        try:
++            return cast(v)
++        except ValueError:
++            return default
++
++
++def read(path: Path):
++    if not path.exists():
++        return []
++    with path.open(newline="", encoding="utf-8") as fh:
++        return [r for r in csv.DictReader(fh)]
++
++
++SUS_ITEMS = [f"Q{i}" for i in range(1, 11)]
++
++
++def sus_score(row) -> float | None:
++    vals = []
++    for i, q in enumerate(SUS_ITEMS, start=1):
++        v = num(row, q, int)
++        if v is None or not 1 <= v <= 5:
++            return None
++        vals.append(v - 1 if i % 2 else 5 - v)
++    return round(sum(vals) * 2.5, 1)
++
++
++def umux(row):
++    q1, q2 = num(row, "U1", int), num(row, "U2", int)
++    if q1 is None or q2 is None:
++        return None
++    return round(((q1 + (6 - q2)) - 2) / 8 * 100, 1)
++
++
++TLX = ["mental", "physical", "temporal", "performance", "effort", "frustration"]
++TLX_W = ["w_mental", "w_physical", "w_temporal", "w_performance", "w_effort", "w_frustration"]
++
++
++def tlx(row):
++    vals = [num(row, k, float) for k in TLX]
++    if any(v is None for v in vals):
++        return None
++    ws = [num(row, k, float) for k in TLX_W]
++    if all(w is not None for w in ws) and sum(ws) > 0:
++        return round(sum(v * w for v, w in zip(vals, ws)) / sum(ws), 1)
++    return round(sum(vals) / 6, 1)     # unweighted; reported as such
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--tasks", type=Path, required=True)
++    ap.add_argument("--survey", type=Path, required=True)
++    ap.add_argument("--outdir", type=Path, default=Path("results"))
++    a = ap.parse_args()
++
++    tasks = read(a.tasks)
++    survey = read(a.survey)
++    if not tasks and not survey:
++        raise SystemExit("both CSVs empty or missing - nothing to report")
++
++    # ---- per task
++    by_task = defaultdict(list)
++    for r in tasks:
++        by_task[(num(r, "task_id", int) or 0, (r.get("task_name") or "").strip())].append(r)
++    task_rows = []
++    for (tid, name), rs in sorted(by_task.items()):
++        n = len(rs)
++        k = sum(1 for r in rs if num(r, "success", int) == 1)
++        ci = wilson(k, n)
++        med_t, iqr_t = median_iqr([num(r, "time_s", float) for r in rs])
++        k_ui = sum(1 for r in rs if num(r, "correct_ui", int) == 1)
++        k_help = sum(1 for r in rs if num(r, "help_requested", int) == 1)
++        att = median_iqr([num(r, "attempts", int) for r in rs])[0]
++        task_rows.append({
++            "id": f"U{tid}", "name": name, "n": n, "success": k, "rate": round(100.0 * k / n, 1),
++            "ci": ci, "t_med": med_t, "t_iqr": iqr_t,
++            "ui": k_ui, "help": k_help, "attempts": att,
++        })
++
++    # ---- questionnaires
++    sus = [s for s in (sus_score(r) for r in survey) if s is not None]
++    um = [s for s in (umux(r) for r in survey) if s is not None]
++    tx = [s for s in (tlx(r) for r in survey) if s is not None]
++    q = lambda v: (None, None) if len(v) < 2 else (
++        round(statistics.median(v), 1), [round(x, 1) for x in statistics.quantiles(v, n=4, method="inclusive")][::2])
++    sus_med, sus_iqr = q(sus)
++    um_med, um_iqr = q(um)
++    tx_med, tx_iqr = q(tx)
++    n_part = len({r.get("participant") for r in survey} or {0}) - (1 if "" in {r.get("participant") for r in survey} else 0)
++    n_part = max(n_part, len(survey))
++    pilot = n_part <= 10
++
++    # ---- LaTeX
++    scale_note = ("; pilot sample, reported as a pilot" if pilot else
++                  "; 95\\% Wilson intervals")
++    L = ["% GENERATED by usability_report.py - do not edit by hand.",
++         "\\begin{table}[t]", "\\centering",
++         f"\\caption{{Task-level usability performance "
++         f"(n\\,=\\,{n_part} participants{scale_note}).}}",
++         "\\label{tab:usability}", "\\small",
++         "\\begin{tabular}{llllll}", "\\toprule",
++         "Task & Content & Done & Rate & 95\\% CI & Time \\\\",
++         "\\midrule"]
++    for r in task_rows:
++        ci = f"[{r['ci'][0]:.1f},\\,{r['ci'][1]:.1f}]" if r["ci"] else "--"
++        t = f"{r['t_med']:.0f}\\,s" if r["t_med"] is not None else "--"
++        L.append(f"  {r['id']} & {r['name'][:34]} & {r['success']}/{r['n']} & "
++                 f"{r['rate']:.0f}\\,\\% & {ci} & {t} \\\\")
++    L += ["\\bottomrule", "\\end{tabular}", "\\end{table}", "",
++          "\\begin{table}[t]", "\\centering",
++          "\\caption{Self-reported measures after the session. Medians and interquartile "
++          "ranges are used because the sample is small and the scales are ordinal.}",
++          "\\label{tab:usability-q}", "\\begin{tabular}{lrrr}", "\\toprule",
++          "Instrument & Median & IQR & $n$ \\\\", "\\midrule"]
++    for nm, med, iqr, nn in (("SUS (0--100)", sus_med, sus_iqr, len(sus)),
++                             ("UMUX-Lite (0--100)", um_med, um_iqr, len(um)),
++                             ("NASA-TLX, unweighted (0--100)", tx_med, tx_iqr, len(tx))):
++        L.append(f"  {nm} & " + (f"{med:.1f}" if med is not None else "--") + " & "
++                 + (f"[{iqr[0]:.1f},\\,{iqr[1]:.1f}]" if iqr else "--") + f" & {nn} \\\\")
++    L += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
++
++    a.outdir.mkdir(parents=True, exist_ok=True)
++    (a.outdir / "usability.tex").write_text("\n".join(L) + "\n", encoding="utf-8")
++
++    caveats = (" This is a pilot: with %d participants, task-level rates are indicative and "
++               "not powered for a between-group comparison." % n_part) if pilot else ""
++    sentences = []
++    for r in task_rows:
++        ci = f" [\\emph{{{r['ci'][0]:.1f}}}, \\emph{{{r['ci'][1]:.1f}}}]" if r["ci"] else ""
++        t = f"; median completion time \\emph{{{r['t_med']:.0f}}}\\,s" if r["t_med"] is not None else ""
++        sentences.append(f"Task {r['id']} ({r['name']}) was completed by {r['success']} of {r['n']} "
++                         f"participants ({r['rate']:.0f}\\%{ci}){t}.")
++    if sus_med is not None:
++        sentences.append(f"Mean-level usability was {sus_med:.1f} on the SUS (IQR "
++                         f"[{sus_iqr[0]:.1f}, {sus_iqr[1]:.1f}] , n\\,=\\,{len(sus)})"
++                         if sus_iqr else f"Median SUS was {sus_med:.1f} (n\\,=\\,{len(sus)}).")
++    if um_med is not None:
++        sentences.append(f"UMUX-Lite gave {um_med:.1f} of 100.")
++    if tx_med is not None:
++        sentences.append(f"Reported workload (NASA-TLX, unweighted) was {tx_med:.1f} of 100.")
++    md = ["# Usability numbers (paste-ready)", "",
++          f"Participants: {n_part}. Tasks recorded: {len(tasks)}. SUS: {len(sus)}, "
++          f"UMUX-Lite: {len(um)}, TLX: {len(tx)}.", "",
++          ("**Pilot-scale caution:** " + caveats.strip()) if caveats else "",
++          "", "## Sentences for the manuscript", ""] + [f"- {s}" for s in sentences]
++    (a.outdir / "usability_numbers.md").write_text("\n".join(x for x in md if x is not None) + "\n",
++                                                   encoding="utf-8")
++    print(json.dumps({"participants": n_part, "tasks": len(task_rows), "pilot": pilot,
++                      "sus_median": sus_med, "umux_median": um_med, "tlx_median": tx_med}, indent=2))
++    print(f"wrote {a.outdir/'usability.tex'} and {a.outdir/'usability_numbers.md'}")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/evaluation/meter/latex/measurement_tables.tex b/evaluation/meter/latex/measurement_tables.tex
+new file mode 100644
+index 0000000..29d809a
+--- /dev/null
++++ b/evaluation/meter/latex/measurement_tables.tex
+@@ -0,0 +1,146 @@
++% measurement_tables.tex - PASTE-READY SKELETON FOR THE MEASURED NUMBERS.
++%
++% Every value cell is "n/m" on purpose. analysis/meter_report.py and
++% analysis/usability_report.py write filled-in copies of these two tables into
++% results/*.tex; those generated files are what you paste into the manuscript.
++% Do not paste this skeleton into the paper, and do not replace an "n/m" with an
++% estimate: delete the row or the sentence instead.
++%
++% Needs: \usepackage{booktabs} (IEEEtran already carries array/tabular).
++
++\subsection{Instrumented background operation}   % replaces Section V's "Not instrumented"
++\label{sec:instrumented}
++
++The legs of Table~\ref{tab:cost} were run on a [handset, Android version] with
++[adaptive charging off, battery saver off, app battery usage unrestricted], the handset on the
++campaign mount, screen off except where stated, and no charger connected. Each leg was repeated
++three times in randomised order; values are medians with the observed range in brackets.
++Drain is reported as a percentage of the rated [xxxx]\,mAh capacity because OEM
++\texttt{current\_now} counters are not exposed on all devices.
++
++\begin{table*}[t]
++\centering
++\caption{Background-operation cost per measurement leg. ``n/m'' marks a quantity the capture did
++not yield on this device; no value has been substituted for it. Bursts and epochs are counted by
++the instrumented build itself, not by a system log.}
++\label{tab:cost}
++\small
++\begin{tabular}{llrrrrrrrr}
++\toprule
++Leg & $n$ & Drain & vs.\ B1 & Current & Bursts/h & Results/h & Epochs/h & Compl.\ ratio & Store \\
++\midrule
++B1 idle baseline            & n/m & n/m & ---   & n/m & n/m & n/m & n/m & n/m & n/m \\
++B2 sensing, screen off      & n/m & n/m & n/m   & n/m & n/m & n/m & n/m & n/m & n/m \\
++B3 sensing, screen on       & n/m & n/m & n/m   & n/m & n/m & n/m & n/m & n/m & n/m \\
++B4 two-handset transit      & n/m & n/m & n/m   & n/m & n/m & n/m & n/m & n/m & n/m \\
++B5 forced Doze              & n/m & n/m & n/m   & n/m & n/m & n/m & n/m & n/m & n/m \\
++B6 battery saver on         & n/m & n/m & n/m   & n/m & n/m & n/m & n/m & n/m & n/m \\
++\bottomrule
++\end{tabular}
++\end{table*}
++
++\begin{table}[t]
++\centering
++\caption{What background scheduling does to the sensing duty cycle. The delivered-per-burst figure
++is the operational reason a closed-display deployment sees fewer events than the same deployment
++run with the screen on.}
++\label{tab:cadence}
++\small
++\begin{tabular}{lrrrrr}
++\toprule
++Condition & Bursts/h & Results/h & Per burst & Gap (s) & $>$2$\times$ nominal \\
++\midrule
++Screen on, interactive   & n/m & n/m & n/m & n/m & n/m \\
++Screen off, not idle     & n/m & n/m & n/m & n/m & n/m \\
++Screen off, Doze idle    & n/m & n/m & n/m & n/m & n/m \\
++Battery saver on         & n/m & n/m & n/m & n/m & n/m \\
++\texttt{startScan()} honoured & \multicolumn{4}{r}{n/m} \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++\begin{table}[t]
++\centering
++\caption{Log volume and radio traffic generated by the sensing build. The traffic row is the
++quantitative form of the ``nothing leaves the handset'' property: it is a measured counter, not an
++architecture diagram.}
++\label{tab:storage}
++\small
++\begin{tabular}{lrrr}
++\toprule
++Quantity & Per hour & Per campaign day & Per month \\
++\midrule
++Session log bytes written        & n/m & n/m & n/m \\
++Peak single-session file         & n/m & ---   & ---   \\
++Files retained after export      & n/m & ---   & ---   \\
++Mobile bytes (up+down)           & n/m & n/m & n/m \\
++Wi-Fi/other bytes (up+down)      & n/m & n/m & n/m \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++\subsection{Usability and permission burden}
++
++\begin{table}[t]
++\centering
++\caption{Task-level usability performance ([n] participants; a pilot sample, reported as a pilot).
++``Done'' counts completions without assistance; assistance was available on request and is itself
++recorded.}
++\label{tab:usability}
++\small
++\begin{tabular}{llllll}
++\toprule
++Task & Content & Done & Rate & 95\% CI & Time \\
++\midrule
++U1 & Install, launch, grant permissions & n/m & n/m & n/m & n/m \\
++U2 & Start a sensing session             & n/m & n/m & n/m & n/m \\
++U3 & Read the current crowd estimate     & n/m & n/m & n/m & n/m \\
++U4 & Interpret a low-confidence reading  & n/m & n/m & n/m & n/m \\
++U5 & Hold a session through a walk       & n/m & n/m & n/m & n/m \\
++U6 & Read score and badges               & n/m & n/m & n/m & n/m \\
++U7 & Export a session log                & n/m & n/m & n/m & n/m \\
++U8 & Stop the app, confirm radio idle    & n/m & n/m & n/m & n/m \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++\begin{table}[t]
++\centering
++\caption{Self-reported measures. Medians and interquartile ranges, because the sample is small and
++the scales are ordinal.}
++\label{tab:usability-q}
++\small
++\begin{tabular}{lrrr}
++\toprule
++Instrument & Median & IQR & $n$ \\
++\midrule
++SUS (0--100)                          & n/m & n/m & n/m \\
++UMUX-Lite (0--100)                    & n/m & n/m & n/m \\
++NASA-TLX, unweighted (0--100)         & n/m & n/m & n/m \\
++Taps, clean install to first classification & \multicolumn{3}{r}{n/m} \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++% ---------------------------------------------------------------------------
++% Prose to paste once the numbers exist. Fill each \emph{<...>} from
++% results/numbers.md; delete any sentence whose value is still n/m.
++%
++% 1. "With the display off, the instrumented build lost \emph{<B2>} of battery per
++%    hour against \emph{<B1>} in the idle baseline (Table~\ref{tab:cost}); the
++%    operator view adds \emph{<B3-B2>}, which is the cost of watching the phone
++%    rather than of sensing."
++% 2. "Under forced Doze the number of completed sensing epochs fell to
++%    \emph{<B5/B2>} of the screen-off rate, and \emph{<n>} of \emph{<m>} epoch gaps
++%    exceeded twice the nominal interval (Table~\ref{tab:cadence}): background
++%    scheduling, not radio physics, is what limits closed-display coverage."
++% 3. "Active Wi-Fi \texttt{startScan()} calls were honoured \emph{<ratio>} of the
++%    time, which is why the epoch gate is driven by scan-result freshness rather
++%    than by a forced scan."
++% 4. "Logging cost \emph{<kB/h>} of storage and \emph{<B>} bytes of mobile traffic
++%    per leg (Table~\ref{tab:storage}); at the campaign cadence this is
++%    \emph{<MB/month>}, and no observation leaves the handset."
++% 5. "\emph{<k>} of \emph{<n>} participants completed the export task unaided
++%    (\emph{<rate>} [\emph{<CI>}]); median SUS was \emph{<score>}, and the
++%    permission sequence took a median of \emph{<t>} and \emph{<x>} taps from a
++%    clean install to the first classification (Table~\ref{tab:usability})."
+diff --git a/evaluation/meter/meter-app/app/build.gradle.kts b/evaluation/meter/meter-app/app/build.gradle.kts
+new file mode 100644
+index 0000000..c10bce5
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/build.gradle.kts
+@@ -0,0 +1,39 @@
++plugins {
++    id("com.android.application")
++    id("org.jetbrains.kotlin.android")
++}
++
++android {
++    namespace = "org.meshcrowd.meter"
++    compileSdk = 35
++
++    defaultConfig {
++        applicationId = "org.meshcrowd.meter"
++        minSdk = 26
++        targetSdk = 35
++        versionCode = 1
++        versionName = "meter-1.0"
++    }
++
++    buildTypes {
++        getByName("release") {
++            isMinifyEnabled = false
++            // Use your own keystore for a release build that behaves like the campaign APK.
++        }
++    }
++
++    compileOptions {
++        sourceCompatibility = JavaVersion.VERSION_17
++        targetCompatibility = JavaVersion.VERSION_17
++    }
++    kotlinOptions { jvmTarget = "17" }
++
++    sourceSets {
++        getByName("main") {
++            // reuse the probe classes so Route A and Route B measure with identical code
++            java.srcDirs("src/main/java", "../../probes")
++        }
++    }
++}
++
++dependencies { }
+diff --git a/evaluation/meter/meter-app/app/src/main/AndroidManifest.xml b/evaluation/meter/meter-app/app/src/main/AndroidManifest.xml
+new file mode 100644
+index 0000000..5b88fbe
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/src/main/AndroidManifest.xml
+@@ -0,0 +1,43 @@
++<?xml version="1.0" encoding="utf-8"?>
++<manifest xmlns:android="http://schemas.android.com/apk/res/android">
++
++    <!-- Radio observation, passive only: neverForLocation is what lets us scan without
++         holding location permission for positioning purposes. -->
++    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
++        android:usesPermissionFlags="neverForLocation" />
++    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
++    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
++    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
++    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
++    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
++    <!-- Needed only to read scan results timestamps for the freshness test on older APIs. -->
++    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
++
++    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
++    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
++
++    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
++
++    <application
++        android:label="@string/app_name"
++        android:allowBackup="false"
++        android:fullBackupContent="false"
++        android:supportsRtl="true">
++
++        <activity
++            android:name=".MainActivity"
++            android:exported="true">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++
++        <service
++            android:name=".MeterService"
++            android:exported="false"
++            android:foregroundServiceType="connectedDevice" />
++    </application>
++</manifest>
+diff --git a/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MainActivity.kt b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MainActivity.kt
+new file mode 100644
+index 0000000..5105d36
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MainActivity.kt
+@@ -0,0 +1,165 @@
++package org.meshcrowd.meter
++
++import android.app.Activity
++import android.content.Context
++import android.content.Intent
++import android.content.pm.PackageManager
++import android.net.Uri
++import android.os.Bundle
++import android.os.PowerManager
++import android.provider.Settings
++import android.view.Gravity
++import android.widget.Button
++import android.widget.EditText
++import android.widget.LinearLayout
++import android.widget.ScrollView
++import android.widget.TextView
++import android.widget.Toast
++import java.io.File
++import java.util.zip.ZipEntry
++import java.util.zip.ZipOutputStream
++
++/**
++ * Minimal control surface: grant, start, stop, export. Deliberately no Compose/AppCompat so the
++ * build has no dependency surprises; the whole point of this app is the logs it writes.
++ */
++class MainActivity : Activity() {
++
++    private lateinit var status: TextView
++    private lateinit var labelField: EditText
++
++    private val requiredPermissions: Array<String>
++        get() = buildList {
++            add("android.permission.BLUETOOTH_SCAN")
++            add("android.permission.BLUETOOTH_CONNECT")
++            add("android.permission.POST_NOTIFICATIONS")
++            add("android.permission.ACCESS_FINE_LOCATION")
++        }.toTypedArray()
++
++    override fun onCreate(savedInstanceState: Bundle?) {
++        super.onCreate(savedInstanceState)
++        val pad = (16 * resources.displayMetrics.density).toInt()
++        val root = LinearLayout(this).apply {
++            orientation = LinearLayout.VERTICAL; setPadding(pad, pad, pad, pad)
++        }
++        status = TextView(this).apply { text = describeState() }
++        labelField = EditText(this).apply { setText("B2-idle-sensing") }
++
++        root.addView(TextView(this).apply {
++            text = "MeshCrowd Meter\nrecords battery, scan cadence, storage, traffic"
++            gravity = Gravity.CENTER
++            setPadding(0, 0, 0, pad)
++        })
++        root.addView(status)
++        root.addView(TextView(this).apply { text = "leg label"; setPadding(0, pad, 0, 0) })
++        root.addView(labelField)
++        root.addView(Button(this).apply {
++            text = "1. Grant permissions"
++            setOnClickListener {
++                val missing = requiredPermissions.filter {
++                    checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
++                }
++                // U1 in the protocol counts these dialogs and taps - do not pre-grant via adb.
++                if (missing.isEmpty()) toast("already granted")
++                else requestPermissions(missing.toTypedArray(), 1)
++            }
++        })
++        root.addView(Button(this).apply {
++            text = "2. Ignore battery optimisation"
++            setOnClickListener {
++                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
++                if (pm.isIgnoringBatteryOptimizations(packageName)) {
++                    toast("already exempt")
++                } else {
++                    runCatching {
++                        startActivity(
++                            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
++                                .setData(Uri.parse("package:$packageName"))
++                        )
++                    }.onFailure {
++                        startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
++                    }
++                }
++            }
++        })
++        root.addView(Button(this).apply {
++            text = "3. Start meter"
++            setOnClickListener {
++                startForegroundService(
++                    Intent(this@MainActivity, MeterService::class.java)
++                        .putExtra(MeterService.EXTRA_LABEL, labelField.text.toString().trim())
++                )
++                refresh()
++            }
++        })
++        root.addView(Button(this).apply {
++            text = "4. Stop and export"
++            setOnClickListener {
++                stopService(Intent(this@MainActivity, MeterService::class.java))
++                refresh()
++                zipAndExport()
++            }
++        })
++
++        setContentView(ScrollView(this).apply { addView(root) })
++    }
++
++    override fun onResume() { super.onResume(); refresh() }
++
++    private fun refresh() { status.text = describeState() }
++
++    private fun describeState(): String {
++        val dir = logDir()
++        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
++        val files = dir.listFiles()?.size ?: 0
++        val bytes = dir.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
++        return buildString {
++            append("meter running: ${MeterService.running}\n")
++            append("logs: $files files, $bytes bytes in ${dir.absolutePath}\n")
++            append("battery optimisation exempt: ${pm.isIgnoringBatteryOptimizations(packageName)}\n")
++            append("device idle: ${pm.isDeviceIdleMode}  light idle: ${pm.isDeviceLightIdleMode}\n")
++            val granted = requiredPermissions.all {
++                checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
++            }
++            append("permissions granted: $granted")
++        }
++    }
++
++    private fun logDir(): File = getExternalFilesDir("meter") ?: filesDir
++
++    private fun zipAndExport() {
++        val zip = File(cacheDir, "meter-${System.currentTimeMillis()}.zip")
++        runCatching {
++            ZipOutputStream(zip.outputStream()).use { out ->
++                logDir().walkTopDown().filter { it.isFile }.forEach { f ->
++                    out.putNextEntry(ZipEntry(f.name))
++                    f.inputStream().use { it.copyTo(out) }
++                    out.closeEntry()
++                }
++            }
++        }.onFailure { toast("zip failed: ${it.message}"); return }
++        startActivityForResult(
++            Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
++                addCategory(Intent.CATEGORY_OPENABLE)
++                type = "application/zip"
++                putExtra(Intent.EXTRA_TITLE, zip.name)
++            },
++            2,
++        )
++    }
++
++    @Deprecated("kept simple on purpose: no Activity Result API dependency")
++    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
++        super.onActivityResult(requestCode, resultCode, data)
++        if (requestCode != 2 || resultCode != RESULT_OK) return
++        val uri = data?.data ?: return
++        contentResolver.openOutputStream(uri)?.use { out ->
++            cacheDir.listFiles { f: File -> f.name.startsWith("meter-") && f.name.endsWith(".zip") }
++                ?.sortedByDescending { it.lastModified() }
++                ?.firstOrNull()?.inputStream()?.use { it.copyTo(out) }
++        }
++        toast("exported")
++    }
++
++    private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
++}
+diff --git a/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterConfig.kt b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterConfig.kt
+new file mode 100644
+index 0000000..11d9a27
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterConfig.kt
+@@ -0,0 +1,18 @@
++package org.meshcrowd.meter
++
++/**
++ * Duty-cycle parameters. Set these to the values your deployment build uses; the meter is only
++ * evidence about the campaign configuration if these match it. The defaults are the values the
++ * manuscript describes for the field campaign.
++ */
++object MeterConfig {
++    const val EPOCH_MS = 15_000L            // scan-epoch window
++    const val BASELINE_SAMPLES = 20         // per-link median baseline depth
++    const val BLE_BURSTS_PER_WINDOW = 5     // Android 15 unprivileged scan allowance per 30 s
++    const val SCAN_WINDOW_MS = 30_000L      // throttle accounting window
++    const val BURST_MS = 1_500L             // how long each scan burst stays open
++    const val LOG_PERIOD_BATTERY_MS = 5_000L
++    const val LOG_PERIOD_STORAGE_MS = 60_000L
++    const val NOTIF_ID = 0x4D43             // "MC"
++    const val CHANNEL_ID = "meshcrowd-meter"
++}
+diff --git a/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterService.kt b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterService.kt
+new file mode 100644
+index 0000000..f884703
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/src/main/java/org/meshcrowd/meter/MeterService.kt
+@@ -0,0 +1,207 @@
++package org.meshcrowd.meter
++
++import android.app.Notification
++import android.app.NotificationChannel
++import android.app.NotificationManager
++import android.app.Service
++import android.bluetooth.BluetoothAdapter
++import android.bluetooth.BluetoothManager
++import android.bluetooth.le.BluetoothLeScanner
++import android.bluetooth.le.ScanCallback
++import android.bluetooth.le.ScanResult
++import android.bluetooth.le.ScanSettings
++import android.content.Context
++import android.content.Intent
++import android.content.IntentFilter
++import android.net.wifi.WifiManager
++import android.os.Build
++import android.os.Handler
++import android.os.IBinder
++import android.os.Looper
++import android.util.Log
++import org.meshcrowd.probes.BatteryProbe
++import org.meshcrowd.probes.ScanCadenceLogger
++import org.meshcrowd.probes.StorageProbe
++import java.io.File
++
++/**
++ * Reproduces the deployment app's observation duty cycle and records what the platform actually
++ * delivers: scan bursts opened at the allowed rate, Wi-Fi scan-result polls at the epoch
++ * boundary, and the three probes writing CSV into the app's external files directory.
++ *
++ * This is a measurement harness, not the sensing stack: no classification happens here.
++ */
++class MeterService : Service() {
++
++    private val handler = Handler(Looper.getMainLooper())
++    private var label = "session"
++    private var scanner: BluetoothLeScanner? = null
++    private var burstOpen = false
++    private var lastWifiSignature: String? = null
++    private var startedAt = 0L
++    private lateinit var outDir: File
++
++    private lateinit var battery: BatteryProbe
++    private lateinit var cadence: ScanCadenceLogger
++    private lateinit var storage: StorageProbe
++
++    private val distinct = mutableSetOf<String>()
++
++    private val scanCallback = object : ScanCallback() {
++        override fun onScanResult(callbackType: Int, result: ScanResult) {
++            distinct += result.device.address
++            cadence.onBleScanResults(1, distinct.size)
++        }
++
++        override fun onBatchScanResults(results: MutableList<ScanResult>) {
++            results.forEach { distinct += it.device.address }
++            cadence.onBleScanResults(results.size, distinct.size)
++        }
++
++        override fun onScanFailed(errorCode: Int) {
++            Log.w(TAG, "BLE scan failed: $errorCode")
++            cadence.onBleScanResults(0, distinct.size)
++        }
++    }
++
++    private val burstRunnable = Runnable { openBurst() }
++    private val epochRunnable = object : Runnable {
++        override fun run() {
++            runEpoch()
++            handler.postDelayed(this, MeterConfig.EPOCH_MS)
++        }
++    }
++
++    override fun onCreate() {
++        super.onCreate()
++        outDir = getExternalFilesDir("meter") ?: filesDir
++        if (!outDir.exists()) outDir.mkdirs()
++        battery = BatteryProbe(this, outDir, MeterConfig.LOG_PERIOD_BATTERY_MS)
++        cadence = ScanCadenceLogger(this, outDir, MeterConfig.SCAN_WINDOW_MS)
++        storage = StorageProbe(this, MeterConfig.LOG_PERIOD_STORAGE_MS)
++        makeChannel()
++    }
++
++    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
++        label = intent?.getStringExtra(EXTRA_LABEL) ?: "session"
++        startForegroundCompat()
++        startedAt = System.currentTimeMillis()
++        battery.start(label); cadence.start(label); storage.start(label)
++        scanner = bluetoothAdapter()?.bluetoothLeScanner
++        scheduleBursts()
++        handler.postDelayed(epochRunnable, MeterConfig.EPOCH_MS)
++        running = true
++        Log.i(TAG, "meter started: $label")
++        return START_STICKY
++    }
++
++    override fun onDestroy() {
++        handler.removeCallbacksAndMessages(null)
++        runCatching { scanner?.stopScan(scanCallback) }
++        battery.stop(); cadence.stop(); storage.stop()
++        File(outDir, "summary-$label.txt").writeText(
++            "label=$label\nstarted=$startedAt\nstopped=${System.currentTimeMillis()}\n" +
++                "unique_ble_addresses=${distinct.size}\n"
++        )
++        running = false
++        Log.i(TAG, "meter stopped: $label")
++        super.onDestroy()
++    }
++
++    override fun onBind(intent: Intent?): IBinder? = null
++
++    // --- BLE duty cycle: BLE_BURSTS_PER_WINDOW bursts per SCAN_WINDOW_MS ------------------
++    private fun scheduleBursts() {
++        val perWindow = MeterConfig.SCAN_WINDOW_MS / MeterConfig.BLE_BURSTS_PER_WINDOW
++        handler.postDelayed(burstRunnable, perWindow)
++    }
++
++    private fun openBurst() {
++        val s = scanner ?: run { scheduleBursts(); return }
++        cadence.onBleScanStarted()
++        burstOpen = true
++        runCatching {
++            s.startScan(
++                null,
++                ScanSettings.Builder()
++                    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
++                    .setLegacy(true) // every advertisement; setReportMode is @hide, not callable
++                    .build(),
++                scanCallback,
++            )
++        }.onFailure { Log.w(TAG, "startScan threw: ${it.message}") }
++        handler.postDelayed({
++            if (burstOpen) {
++                burstOpen = false
++                runCatching { s.stopScan(scanCallback) }
++            }
++            handler.postDelayed(burstRunnable, MeterConfig.SCAN_WINDOW_MS / MeterConfig.BLE_BURSTS_PER_WINDOW - MeterConfig.BURST_MS)
++        }, MeterConfig.BURST_MS)
++    }
++
++    // --- epoch: Wi-Fi scan-result poll + freshness check ---------------------------------
++    private fun runEpoch() {
++        cadence.onEpochAttempted()
++        cadence.noteEvent("epoch_attempted")
++        val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
++        var fresh = false
++        if (wifi != null) {
++            val accepted = runCatching {
++                @Suppress("DEPRECATION")
++                wifi.startScan()          // returns false on Android 9+ for third-party apps
++            }.getOrDefault(false)
++            cadence.onWifiStartScan(accepted)
++            val results = runCatching { wifi.scanResults ?: emptyList() }.getOrDefault(emptyList())
++            val signature = results.joinToString(";") { "${it.BSSID}@${it.timestamp}" }
++            fresh = signature.isNotEmpty() && signature != lastWifiSignature
++            lastWifiSignature = signature
++            cadence.onWifiPoll(fresh)
++        } else {
++            cadence.onWifiPoll(false)
++        }
++        if (burstOpen || distinct.isNotEmpty() || fresh) {
++            cadence.onEpochCompleted()
++            cadence.noteEvent("epoch_completed")
++        }
++    }
++
++    private fun bluetoothAdapter(): BluetoothAdapter? =
++        (getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
++
++    private fun makeChannel() {
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
++            val nm = getSystemService(NotificationManager::class.java)
++            if (nm.getNotificationChannel(MeterConfig.CHANNEL_ID) == null) {
++                nm.createNotificationChannel(
++                    NotificationChannel(
++                        MeterConfig.CHANNEL_ID, "MeshCrowd Meter",
++                        NotificationManager.IMPORTANCE_LOW,
++                    )
++                )
++            }
++        }
++    }
++
++    private fun startForegroundCompat() {
++        val notif: Notification = Notification.Builder(this, MeterConfig.CHANNEL_ID)
++            .setContentTitle("MeshCrowd Meter")
++            .setContentText("recording: $label")
++            .setSmallIcon(android.R.drawable.ic_menu_manage)
++            .setOngoing(true)
++            .build()
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
++            startForeground(
++                MeterConfig.NOTIF_ID, notif,
++                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
++            )
++        } else {
++            startForeground(MeterConfig.NOTIF_ID, notif)
++        }
++    }
++
++    companion object {
++        const val EXTRA_LABEL = "label"
++        private const val TAG = "MeshCrowdMeter"
++        @Volatile var running: Boolean = false
++    }
++}
+diff --git a/evaluation/meter/meter-app/app/src/main/res/values/strings.xml b/evaluation/meter/meter-app/app/src/main/res/values/strings.xml
+new file mode 100644
+index 0000000..89058da
+--- /dev/null
++++ b/evaluation/meter/meter-app/app/src/main/res/values/strings.xml
+@@ -0,0 +1,3 @@
++<resources>
++    <string name="app_name">MeshCrowd Meter</string>
++</resources>
+diff --git a/evaluation/meter/meter-app/build.gradle.kts b/evaluation/meter/meter-app/build.gradle.kts
+new file mode 100644
+index 0000000..4f76890
+--- /dev/null
++++ b/evaluation/meter/meter-app/build.gradle.kts
+@@ -0,0 +1,7 @@
++// Root build file for the MeshCrowd meter APK.
++// If Android Studio complains about versions, bump these two to whatever your Studio offers;
++// nothing else in this project depends on a specific plugin version.
++plugins {
++    id("com.android.application") version "8.5.2" apply false
++    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
++}
+diff --git a/evaluation/meter/meter-app/gradle.properties b/evaluation/meter/meter-app/gradle.properties
+new file mode 100644
+index 0000000..923c825
+--- /dev/null
++++ b/evaluation/meter/meter-app/gradle.properties
+@@ -0,0 +1,3 @@
++org.gradle.jvmargs=-Xmx2048m
++android.useAndroidX=false
++kotlin.code.style=official
+diff --git a/evaluation/meter/meter-app/settings.gradle.kts b/evaluation/meter/meter-app/settings.gradle.kts
+new file mode 100644
+index 0000000..330e1ed
+--- /dev/null
++++ b/evaluation/meter/meter-app/settings.gradle.kts
+@@ -0,0 +1,16 @@
++pluginManagement {
++    repositories {
++        google()
++        mavenCentral()
++        gradlePluginPortal()
++    }
++}
++dependencyResolutionManagement {
++    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
++    repositories {
++        google()
++        mavenCentral()
++    }
++}
++rootProject.name = "MeshCrowdMeter"
++include(":app")
+diff --git a/evaluation/meter/probes/BatteryProbe.kt b/evaluation/meter/probes/BatteryProbe.kt
+new file mode 100644
+index 0000000..2a43851
+--- /dev/null
++++ b/evaluation/meter/probes/BatteryProbe.kt
+@@ -0,0 +1,77 @@
++package org.meshcrowd.probes
++
++import android.content.Context
++import android.content.Intent
++import android.content.IntentFilter
++import android.os.BatteryManager
++import android.os.Handler
++import android.os.Looper
++import android.os.PowerManager
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Samples the battery gauge, the instantaneous current where the HAL exposes it, and the
++ * Doze/screen state on a fixed period. Writes one CSV per leg so drain can be computed
++ * independently of batterystats.
++ *
++ * Drop-in: create in whatever owns the sensing session, call start()/stop() around it.
++ */
++class BatteryProbe(
++    private val context: Context,
++    private val dir: File,
++    private val periodMs: Long = 5_000L,
++) {
++    private val handler = Handler(Looper.getMainLooper())
++    private val battery = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
++    private val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
++    private var t0 = 0L
++    private lateinit var out: File
++    private var running = false
++
++    private val tick = object : Runnable {
++        override fun run() {
++            if (!running) return
++            sample()
++            handler.postDelayed(this, periodMs)
++        }
++    }
++
++    fun start(label: String) {
++        if (!dir.exists()) dir.mkdirs()
++        out = File(dir, "battery-$label.csv")
++        out.writeText("elapsed_s,level,scale,voltage_duV,temperature_dC,status,plugged,current_uA,device_idle,light_idle,screen\n")
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        handler.post(tick)
++    }
++
++    fun stop() {
++        running = false
++        handler.removeCallbacks(tick)
++    }
++
++    private fun sample() {
++        val intent: Intent? = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
++        val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
++        val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
++        val volt = intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1) ?: -1
++        val temp = intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
++        val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
++        val plugged = intent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
++        // CURRENT_NOW is uA on most HALs and negative while discharging; -1 where unavailable.
++        val current = runCatching { battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) }.getOrDefault(-1)
++        val elapsed = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(elapsed), level, scale, volt * 1000, temp, status, plugged, current,
++                if (power.isDeviceIdleMode) 1 else 0,
++                if (power.isDeviceLightIdleMode) 1 else 0,
++                screenState(),
++            ).joinToString(",") + "\n"
++        )
++    }
++
++    private fun screenState(): String =
++        if (power.isInteractive) "on" else "off"
++}
+diff --git a/evaluation/meter/probes/ScanCadenceLogger.kt b/evaluation/meter/probes/ScanCadenceLogger.kt
+new file mode 100644
+index 0000000..a3dabfd
+--- /dev/null
++++ b/evaluation/meter/probes/ScanCadenceLogger.kt
+@@ -0,0 +1,120 @@
++package org.meshcrowd.probes
++
++import android.content.BroadcastReceiver
++import android.content.Context
++import android.content.Intent
++import android.content.IntentFilter
++import android.os.Handler
++import android.os.Looper
++import android.os.PowerManager
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Records whether the OS actually delivers the scan cadence the app asks for.
++ *
++ * Call the on* methods from your real scan callbacks; the logger aggregates per window
++ * (default 30 s, matching Android's scan-throttle window) and writes one row per window.
++ * That is the evidence for "operational consequence of throttling": epochs *attempted* vs
++ * epochs *delivered*, split by screen state and Doze state.
++ */
++class ScanCadenceLogger(
++    private val context: Context,
++    private val dir: File,
++    private val windowMs: Long = 30_000L,
++) {
++    private val handler = Handler(Looper.getMainLooper())
++    private val power by lazy { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
++    private lateinit var out: File
++    private var labelName: String = "session"
++    private var t0 = 0L
++    private var running = false
++
++    // window accumulators
++    private var bleStarts = 0
++    private var bleResults = 0
++    private var bleLinks = 0
++    private var wifiPolls = 0
++    private var wifiFreshPolls = 0
++    private var wifiStartScanTried = 0
++    private var wifiStartScanAccepted = 0
++    private var epochsAttempted = 0
++    private var epochsCompleted = 0
++
++    private val screenReceiver = object : BroadcastReceiver() {
++        override fun onReceive(c: Context, i: Intent) {
++            when (i.action) {
++                Intent.ACTION_SCREEN_ON -> writeEvent("screen_on")
++                Intent.ACTION_SCREEN_OFF -> writeEvent("screen_off")
++            }
++        }
++    }
++
++    private val flush = object : Runnable {
++        override fun run() {
++            if (!running) return
++            flushWindow()
++            handler.postDelayed(this, windowMs)
++        }
++    }
++
++    fun start(label: String) {
++        labelName = label
++        if (!dir.exists()) dir.mkdirs()
++        out = File(dir, "cadence-$label.csv")
++        out.writeText(
++            "window_start_s,ble_scan_starts,ble_results,ble_links,wifi_polls,wifi_polls_fresh," +
++                "wifi_startscan_tried,wifi_startscan_accepted,epochs_attempted,epochs_completed," +
++                "screen_on,device_idle,light_idle\n"
++        )
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        context.registerReceiver(screenReceiver, IntentFilter().apply {
++            addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF)
++        })
++        handler.post(flush)
++    }
++
++    fun stop() {
++        running = false
++        handler.removeCallbacks(flush)
++        runCatching { context.unregisterReceiver(screenReceiver) }
++    }
++
++    // ---- call these from the app -------------------------------------------------
++    fun onBleScanStarted() { bleStarts++ }
++    fun onBleScanResults(count: Int, distinctLinks: Int) {
++        bleResults += count
++        bleLinks = maxOf(bleLinks, distinctLinks)
++    }
++    /** [fresh] true when the results are newer than the previous poll's timestamp list. */
++    fun onWifiPoll(fresh: Boolean) { wifiPolls++; if (fresh) wifiFreshPolls++ }
++    fun onWifiStartScan(accepted: Boolean) { wifiStartScanTried++; if (accepted) wifiStartScanAccepted++ }
++    fun onEpochAttempted() { epochsAttempted++ }
++    fun onEpochCompleted() { epochsCompleted++ }
++    /** Timestamped marker in events-<label>.csv; used to recover epoch gaps. */
++    fun noteEvent(name: String) { writeEvent(name) }
++    // ------------------------------------------------------------------------------
++
++    private fun flushWindow() {
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(el), bleStarts, bleResults, bleLinks, wifiPolls, wifiFreshPolls,
++                wifiStartScanTried, wifiStartScanAccepted, epochsAttempted, epochsCompleted,
++                if (power.isInteractive) 1 else 0,
++                if (power.isDeviceIdleMode) 1 else 0,
++                if (power.isDeviceLightIdleMode) 1 else 0,
++            ).joinToString(",") + "\n"
++        )
++        bleStarts = 0; bleResults = 0; bleLinks = 0
++        wifiPolls = 0; wifiFreshPolls = 0
++        wifiStartScanTried = 0; wifiStartScanAccepted = 0
++        epochsAttempted = 0; epochsCompleted = 0
++    }
++
++    private fun writeEvent(name: String) {
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        File(dir, "events-$labelName.csv").appendText("%.1f,%s\n".format(el, name))
++    }
++}
+diff --git a/evaluation/meter/probes/StorageProbe.kt b/evaluation/meter/probes/StorageProbe.kt
+new file mode 100644
+index 0000000..e3b3a20
+--- /dev/null
++++ b/evaluation/meter/probes/StorageProbe.kt
+@@ -0,0 +1,69 @@
++package org.meshcrowd.probes
++
++import android.content.Context
++import android.os.Handler
++import android.os.Looper
++import android.os.SystemClock
++import java.io.File
++
++/**
++ * Tracks how much the app's own logging costs on disk, and (via [trafficSnapshot]) how much
++ * mobile/Wi-Fi traffic the process accounts for. No root needed: only the app's own
++ * directories are measured, which is exactly what the deployment question is about.
++ */
++class StorageProbe(private val context: Context, private val periodMs: Long = 60_000L) {
++    private val handler = Handler(Looper.getMainLooper())
++    private lateinit var out: File
++    private var t0 = 0L
++    private var running = false
++
++    private val tick = object : Runnable {
++        override fun run() {
++            if (!running) return
++            sample(); handler.postDelayed(this, periodMs)
++        }
++    }
++
++    fun start(label: String) {
++        val d = context.getExternalFilesDir("meter") ?: context.filesDir
++        out = File(d, "storage-$label.csv")
++        out.writeText("elapsed_s,files_bytes,cache_bytes,nobackup_bytes,log_files,log_bytes_max,log_bytes_total,traffic\n")
++        t0 = SystemClock.elapsedRealtime()
++        running = true
++        handler.post(tick)
++    }
++
++    fun stop() { running = false; handler.removeCallbacks(tick) }
++
++    private fun sample() {
++        val files = context.filesDir
++        val cache = context.cacheDir
++        val noBackup = File(context.dataDir, "no_backup")
++        val logs = files.listFiles { f: File -> f.isFile && !f.name.endsWith(".csv") }?.toList() ?: emptyList()
++        val el = (SystemClock.elapsedRealtime() - t0) / 1000.0
++        out.appendText(
++            listOf(
++                "%.1f".format(el), sizeOf(files), sizeOf(cache),
++                if (noBackup.exists()) sizeOf(noBackup) else 0,
++                logs.size, logs.maxOfOrNull { it.length() } ?: 0L, logs.sumOf { it.length() },
++                trafficLine(),
++            ).joinToString(",") + "\n"
++        )
++    }
++
++    private fun sizeOf(dir: File): Long {
++        if (!dir.exists()) return 0L
++        return dir.walkTopDown().filter { it.isFile && it.canRead() }.map { it.length() }.sum()
++    }
++
++    /** Per-UID traffic from the same counters Settings shows: the paper's "no data plan
++     *  impact" claim is only as good as these four numbers. */
++    fun trafficLine(): String {
++        val rx = android.net.TrafficStats.getMobileRxBytes()
++        val tx = android.net.TrafficStats.getMobileTxBytes()
++        val urx = android.net.TrafficStats.getUidRxBytes(android.os.Process.myUid())
++        val utx = android.net.TrafficStats.getUidTxBytes(android.os.Process.myUid())
++        // ';' inside the field: a comma would split the column in the CSV.
++        return "mobile_rx=$rx;mobile_tx=$tx;uid_rx=$urx;uid_tx=$utx"
++    }
++}
+diff --git a/evaluation/meter/protocol.md b/evaluation/meter/protocol.md
+new file mode 100644
+index 0000000..50be080
+--- /dev/null
++++ b/evaluation/meter/protocol.md
+@@ -0,0 +1,98 @@
++# Measurement protocol — battery, storage, background operation, usability
++
++Everything below is a *recording* protocol: fixed conditions, fixed duration, machine-generated
++logs, no hand-transcribed numbers. Fill `protocol-results.md` as you go; it is the file I need
++back together with `runs/`.
++
++Conventions: one leg = one uninterrupted run. Start the log, wait 5 min for the battery gauge to
++settle, then start the timer (`run_leg.sh` does this). Label runs `<leg>-<rep>` with rep ∈ {1,2,3}.
++Randomise leg order; write the order down. Ambient temperature recorded at start/end
++(`run_leg.sh` grabs it from `dumpsys battery`).
++
++---
++
++## Part B — power, background operation, storage, traffic
++
++### Conditions
++
++| Leg | Screen | Radios/scanning | Other | Question it answers |
++|---|---|---|---|---|
++| B1 | off | app not installed/stopped | — | idle floor of this handset at these settings |
++| B2 | off | meter/app scanning, 15 s epochs | foreground service running | **the deployment case**: background drain, screen-off scan availability |
++| B3 | on, 40 % brightness, dashboard visible | as B2 | — | cost of the operator view |
++| B4 | off | two phones, transit sessions every 5 min | RFCOMM + L2CAP | mesh/perimeter configuration |
++| B5 | off, then forced Doze | scanning only | `adb shell dumpsys deviceidle force-idle` for the last 30 min | does the duty cycle survive deep idle, and how much of it is lost |
++| B6 | off | scanning, **battery saver ON** | — | what a normal user's settings do to range |
++
++3 reps each; 30 min for B1–B3, 60 min for B4–B6 (long enough that a 15 s epoch count is
++meaningful). Between reps: unplug, let the phone idle 10 min, re-run.
++
++### Captured per leg (automated by `scripts/run_leg.sh`)
++
++- `batterystats-before.txt`, `batterystats-after.txt` — `dumpsys batterystats` full report
++- `batterystats-checkin.txt` — machine-parseable `--checkin` dump
++- `battery.csv` — 5 s samples: `elapsed_s,level,scale,voltage_duV,temperature_dC,status,plugged,current_uA,idle_state,light_idle,screen`
++- `storage.csv` — 60 s samples: `elapsed_s,files_bytes,cache_bytes,nobackup_bytes,session_files,exported_bytes`
++- `netstats-before.txt` / `-after.txt` — `dumpsys netstats --uid` (per-UID mobile/Wi-Fi bytes)
++- `deviceidle-history.txt` — `dumpsys deviceidle` + `dumpsys deviceidle history`
++- `app-logs/` — the app's own CSV/JSON exports (scan cadence, epochs delivered, refusals)
++- `logcat.txt` — `adb logcat -d` snapshot, kept for service kills/ANRs (a killed service is a
++  result, not noise — report it)
++
++### Derived quantities (computed by `analysis/parse_leg.py` then `analysis/meter_report.py`)
++
++1. `drain_pct_per_h` = (level_start − level_end)/hours, and `drain_mah_per_h` from
++   `BatteryProperty CURRENT_NOW` medians where the HAL exposes it, else from rated capacity.
++2. `net_cost_pct_per_h` = leg drain minus B1 drain (the number a reviewer actually wants).
++3. `ble_scan_requests_per_h`, `ble_scan_results_per_h`, `wifi_polls_per_h`,
++   `wifi_startscan_accepted_ratio` (Android 9+ returns false for third-party apps — report it),
++   `epochs_delivered_per_h`, `epoch_gap_s` median/p95 (from `events-<label>.csv`, which the app stamps at every epoch attempt).
++4. `scans_per_hour_screen_off / _doze / _idle` → the operational consequence of throttling.
++5. `storage_bytes_per_h`, `…_per_month_at_campaign_cadence`, `export_bytes_per_session`,
++   `mobile_bytes_tx/rx` (expected ≈ 0 — say so with the number, not with an adjective).
++6. Service survival: count of `started`/`killed` events, and whether the notification produced a
++   wake-up storm (`dumpsys batterystats` "Wake lock" section).
++
++Report every quantity as median [IQR] over the three reps with the exposure `T`; never a single run.
++
++---
++
++## Part U — usability, permission burden, and consent
++
++Recruit **6–10** participants who are not authors. Students/colleagues are fine; record role and
++prior Android development experience (that is your only stratification at this n).
++**Do this only after the consent form is signed and kept** — the same form covers the field
++campaign, which closes the outstanding consent item.
++
++### Session (≈35 min, think-aloud, no assistance unless the participant asks)
++
++| # | Task | Success criterion (objective) |
++|---|---|---|
++| U1 | Install the APK, grant everything the app asks for, reach the Sense tab | first live link counter > 0; record **taps and dialogs count** and **time from launch to first classification** |
++| U2 | Start sensing, place the phone as instructed, verify a person crossing is flagged | event appears within 60 s |
++| U3 | Open Scans, explain what one stored epoch says out loud | correctly states window length, one link that changed, and the verdict |
++| U4 | Set the radius preset and explain what the envelope means | mentions distance-conditioned limit, not "unlimited range" |
++| U5 | Read the Sense tab's classifier confidence and say whether it is a probability of a person or of the class being right | correct interpretation (this probes the displayed-vs-realized gap) |
++| U6 | Configure a two-phone transit barrier at a chosen separation and start it | both phones show the barrier active |
++| U7 | Export a session, find the file, describe who could read it | export completes; states on-device/no-server correctly |
++| U8 | Reopen the app after 1 h in the drawer and say whether sensing continued | correct answer against the log (this is the background-operation literacy check) |
++
++Per task record: `completed ∈ {yes, partial, no}`, `time_s`, `errors`, `help_requested`,
++and one NASA-TLX score (0–100) for the whole session. After the session: **SUS** (10 items) and
++**UMUX-Lite** (4 items), plus two open questions: "what would you not run this on, and why" and
++"what did you expect the mesh to do that you now doubt".
++
++### Reported
++
++completion rate with Wilson interval per task, median time [IQR], error counts, SUS mean ± SD and
++UMUX-Lite scores, and the permission-burden numbers from U1 (dialogs, taps, time to first
++classification). With n ≤ 10 report medians and intervals and call it a pilot — do not test
++hypotheses, describe.
++
++### Consent
++
++`templates/consent-form.md` is a fill-in template: purpose, what is recorded (task times,
++errors, questionnaire answers, no audio unless you record it), storage location and retention,
++right to withdraw, and the fact that crossing subjects are the experimenters themselves. Keep
++signed copies; state in the paper that participants consented and that the field campaign's
++bystanders were not identifiable because no identifiers are retained.
+diff --git a/evaluation/meter/scripts/build_apk_local.sh b/evaluation/meter/scripts/build_apk_local.sh
+new file mode 100755
+index 0000000..445f345
+--- /dev/null
++++ b/evaluation/meter/scripts/build_apk_local.sh
+@@ -0,0 +1,71 @@
++#!/usr/bin/env bash
++# Build MeshCrowdMeter-debug.apk without Gradle, for sandboxes/CI that only have a JDK,
++# kotlinc and the raw SDK zips. The canonical path is still
++#   cd meter-app && ./gradlew :app:assembleDebug
++# This script produces the same classes + resources + a debug signature, so it can be used
++# to prove the sources compile and to put an APK on the handset when Gradle is unavailable.
++#
++# Env overrides: ANDROID_SDK (needs platforms/android-XX/android.jar + a build-tools dir),
++#                KOTLINC, COMPILE_SDK.
++set -euo pipefail
++
++ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
++SDK="${ANDROID_SDK:-$HOME/android-sdk}"
++KOT="${KOTLINC:-$HOME/kotlinc/bin/kotlinc}"
++API="${COMPILE_SDK:-35}"
++
++PLAT="$SDK/platforms/android-$API/android.jar"
++BT="$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)"
++[ -x "$BT/aapt2" ] || { echo "aapt2 not found under $SDK/build-tools"; exit 1; }
++[ -f "$PLAT" ] || { echo "missing $PLAT"; exit 1; }
++[ -x "$KOT" ] || { echo "missing kotlinc at $KOT"; exit 1; }
++
++OUT="$ROOT/dist"
++WORK="$(mktemp -d)"
++trap 'rm -rf "$WORK"' EXIT
++mkdir -p "$WORK/klasses" "$WORK/dex" "$OUT"
++
++SRC=()
++while IFS= read -r f; do SRC+=("$f"); done < <(
++  find "$ROOT/meter-app/app/src/main/java" -name '*.kt'
++  find "$ROOT/probes" -maxdepth 1 -name '*.kt'
++)
++echo "==> kotlinc, ${#SRC[@]} files, jvm-target 1.8, target $API"
++"$KOT" -nowarn -classpath "$PLAT" -jvm-target 1.8 -d "$WORK/klasses" "${SRC[@]}"
++
++echo "==> d8 (app classes + kotlin stdlib)"
++CP=()
++while IFS= read -r c; do CP+=("$c"); done < <(find "$WORK/klasses" -name '*.class')
++STDLIB="$(dirname "$(dirname "$KOT")")/lib"
++for j in kotlin-stdlib.jar kotlin-stdlib-jdk7.jar kotlin-stdlib-jdk8.jar; do
++  [ -f "$STDLIB/$j" ] && CP+=("$STDLIB/$j")
++done
++"$BT/d8" --release --min-api 26 --lib "$PLAT" --output "$WORK/dex" "${CP[@]}"
++
++echo "==> aapt2 compile + link"
++# Gradle's `namespace` supplies the manifest package; the raw aapt2 path needs it inline,
++# so link against a temporary copy instead of editing the committed manifest.
++sed -E 's|<manifest xmlns:android="[^"]*">|<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.meshcrowd.meter">|' \
++  "$ROOT/meter-app/app/src/main/AndroidManifest.xml" > "$WORK/AndroidManifest.xml"
++grep -q 'package="org.meshcrowd.meter"' "$WORK/AndroidManifest.xml" || { echo "could not inject package attribute"; exit 1; }
++"$BT/aapt2" compile --dir "$ROOT/meter-app/app/src/main/res" -o "$WORK/res.zip"
++"$BT/aapt2" link -o "$WORK/base.apk" -I "$PLAT" \
++  --manifest "$WORK/AndroidManifest.xml" \
++  --min-sdk-version 26 --target-sdk-version "$API" \
++  --version-code 1 --version-name meter-1.0 \
++  --java "$WORK/genjava" "$WORK/res.zip"
++
++echo "==> zip + align + sign"
++cp "$WORK/base.apk" "$WORK/unsigned.apk"
++(cd "$WORK/dex" && zip -q "$WORK/unsigned.apk" classes.dex)
++"$BT/zipalign" -f -p 4 "$WORK/unsigned.apk" "$WORK/aligned.apk"
++KS="$WORK/debug.keystore"
++keytool -genkeypair -keystore "$KS" -alias androiddebugkey -storepass android -keypass android \
++  -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
++"$BT/apksigner" sign --ks "$KS" --ks-pass pass:android --key-pass pass:android \
++  --out "$OUT/MeshCrowdMeter-debug.apk" "$WORK/aligned.apk"
++
++echo "==> verify"
++"$BT/apksigner" verify --print-certs "$OUT/MeshCrowdMeter-debug.apk" | head -4
++"$BT/aapt2" dump badging "$OUT/MeshCrowdMeter-debug.apk" | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|launchable)" | sed 's/^/    /'
++ls -l "$OUT/MeshCrowdMeter-debug.apk"
+diff --git a/evaluation/meter/scripts/run_leg.sh b/evaluation/meter/scripts/run_leg.sh
+new file mode 100755
+index 0000000..b20712e
+--- /dev/null
++++ b/evaluation/meter/scripts/run_leg.sh
+@@ -0,0 +1,99 @@
++#!/usr/bin/env bash
++# run_leg.sh — capture one battery/background/storage measurement leg.
++# Usage: scripts/run_leg.sh <label> <minutes> [package]
++#   scripts/run_leg.sh B2-idle-sensing 30 org.meshcrowd.app
++# Requires: adb on PATH (platform-tools). No root needed; run-as is used only if the build is debuggable.
++set -u -o pipefail
++
++LABEL="${1:?label, e.g. B2-idle-sensing}"
++MINUTES="${2:?duration in minutes}"
++PKG="${3:-org.meshcrowd.meter}"
++
++OUT="runs/${LABEL}-$(date +%Y%m%d-%H%M%S)"
++mkdir -p "$OUT/app-logs"
++echo "== leg $LABEL, ${MINUTES} min -> $OUT"
++
++# 1) pre-state snapshots
++adb shell dumpsys batterystats           > "$OUT/batterystats-before.txt"
++adb shell dumpsys battery               >> "$OUT/batterystats-before.txt"
++adb shell dumpsys netstats --uid        > "$OUT/netstats-before.txt"
++adb shell dumpsys deviceidle            > "$OUT/deviceidle-before.txt"
++adb shell dumpsys power | head -40      > "$OUT/power-before.txt"
++date -Is                                > "$OUT/start.txt"
++
++# 2) reset accounting so the post-run report covers exactly this window
++adb shell dumpsys batterystats --reset
++adb shell dumpsys netstats --reset 2>/dev/null || true
++echo "batterystats reset at $(date -Is)" | tee "$OUT/notes.txt"
++echo "preconditions to verify manually: adaptive charging off, battery saver off, app battery=Unrestricted, no charger" >> "$OUT/notes.txt"
++
++# 3) 5 s battery/idle/screen sampler (this is the primary drain record)
++(
++  END=$(( $(date +%s) + MINUTES*60 ))
++  printf 'elapsed_s,level,scale,voltage_duV,temperature_dC,status,plugged,current_uA,idle_state,light_idle,screen,timestamp\n' \
++    > "$OUT/battery.csv"
++  T0=$(date +%s)
++  while [ "$(date +%s)" -lt "$END" ]; do
++    B=$(adb shell dumpsys battery | tr -d '\r')
++    lvl=$(sed -n 's/.*level: \([0-9]*\).*/\1/p' <<<"$B")
++    scl=$(sed -n 's/.*scale: \([0-9]*\).*/\1/p' <<<"$B")
++    vol=$(sed -n 's/.*voltage: \([0-9]*\).*/\1/p' <<<"$B")
++    tmp=$(sed -n 's/.*temperature: \([0-9-]*\).*/\1/p' <<<"$B")
++    st=$(sed -n 's/.*status: \([0-9]*\).*/\1/p' <<<"$B")
++    plg=$(sed -n 's/.*plugged: \([0-9]*\).*/\1/p' <<<"$B")
++    cur=$(adb shell dumpsys battery_properties 2>/dev/null | tr -d '\r' | sed -n 's/.*chargingStatus.*//p' >/dev/null; \
++          adb shell cat /sys/class/power_supply/battery/current_now 2>/dev/null | tr -d '\r')
++    idl=$(adb shell dumpsys deviceidle 2>/dev/null | tr -d '\r' | grep -m1 -o 'mState=[0-9]*' | cut -d= -f2)
++    lgt=$(adb shell dumpsys deviceidle 2>/dev/null | tr -d '\r' | grep -m1 -o 'mLightState=[0-9]*' | cut -d= -f2)
++    scr=$(adb shell dumpsys power 2>/dev/null | tr -d '\r' | grep -m1 -o 'mWakefulness=[A-Za-z]*' | cut -d= -f2)
++    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
++      "$(( $(date +%s) - T0 ))" "${lvl:-NA}" "${scl:-NA}" "${vol:-NA}" "${tmp:-NA}" \
++      "${st:-NA}" "${plg:-NA}" "${cur:-NA}" "${idl:-NA}" "${lgt:-NA}" "${scr:-NA}" "$(date -Is)" \
++      >> "$OUT/battery.csv"
++    sleep 5
++  done
++) &
++SAMPLER=$!
++
++# 4) 60 s storage sampler (app-private bytes; run-as works on debuggable builds only)
++(
++  END=$(( $(date +%s) + MINUTES*60 ))
++  printf 'elapsed_s,files_bytes,cache_bytes,nobackup_bytes,session_files,exported_bytes\n' \
++    > "$OUT/storage.csv"
++  T0=$(date +%s)
++  while [ "$(date +%s)" -lt "$END" ]; do
++    f=$(adb shell "run-as $PKG du -sb files 2>/dev/null" | tr -d '\r' | grep -o '^[0-9]*' || true)
++    c=$(adb shell "run-as $PKG du -sb cache 2>/dev/null" | tr -d '\r' | grep -o '^[0-9]*' || true)
++    n=$(adb shell "run-as $PKG du -sb no_backup 2>/dev/null" | tr -d '\r' | grep -o '^[0-9]*' || true)
++    cnt=$(adb shell "run-as $PKG sh -c 'ls files 2>/dev/null | wc -l'" | tr -d '\r' | grep -o '[0-9]*$' || true)
++    exp=$(adb shell "run-as $PKG sh -c 'du -cb files/*.json 2>/dev/null | tail -1'" | tr -d '\r' | grep -o '[0-9]*\s*total' | grep -o '[0-9]*' || true)
++    printf '%s,%s,%s,%s,%s,%s\n' "$(( $(date +%s) - T0 ))" "${f:-NA}" "${c:-NA}" "${n:-NA}" "${cnt:-NA}" "${exp:-NA}" \
++      >> "$OUT/storage.csv"
++    sleep 60
++  done
++) &
++STORAGE=$!
++
++# 5) wait, then post-state
++wait $SAMPLER $STORAGE 2>/dev/null || true
++
++adb shell logcat -d -t 4000 > "$OUT/logcat.txt"
++adb shell dumpsys batterystats            > "$OUT/batterystats-after.txt"
++adb shell dumpsys batterystats --checkin  > "$OUT/batterystats-checkin.txt"
++adb shell dumpsys netstats --uid          > "$OUT/netstats-after.txt"
++adb shell dumpsys deviceidle              > "$OUT/deviceidle-after.txt"
++adb shell dumpsys deviceidle history     >> "$OUT/deviceidle-after.txt"
++date -Is                                  > "$OUT/end.txt"
++
++# 6) pull the logs. Preferred location is the app's external files dir
++#    (/sdcard/Android/data/<pkg>/files/meter) so that release builds need no run-as.
++adb pull "/sdcard/Android/data/$PKG/files/meter" "$OUT/app-logs/" 2>/dev/null || true
++if [ -z "$(ls -A "$OUT/app-logs" 2>/dev/null)" ]; then
++  adb shell "run-as $PKG sh -c 'cd files && tar -cf /sdcard/meter-pull.tar * 2>/dev/null'" || true
++  adb pull /sdcard/meter-pull.tar "$OUT/app-logs/" 2>/dev/null || \
++    echo "NOTE: no logs pulled - pass getExternalFilesDir(\"meter\") to the probes, or use the app's Export ZIP and drop it in $OUT/app-logs/" | tee -a "$OUT/notes.txt"
++fi
++adb bugreport "$OUT/bugreport.zip" >/dev/null 2>&1 || echo "bugreport skipped (re-run manually if wanted)" | tee -a "$OUT/notes.txt"
++
++echo "== done: $OUT"
++echo "   next: analysis/parse_batterystats.py $OUT/batterystats-after.txt -o $OUT/metrics.json"
+diff --git a/evaluation/meter/scripts/storage_net_snapshot.sh b/evaluation/meter/scripts/storage_net_snapshot.sh
+new file mode 100755
+index 0000000..e66fde1
+--- /dev/null
++++ b/evaluation/meter/scripts/storage_net_snapshot.sh
+@@ -0,0 +1,43 @@
++#!/usr/bin/env bash
++# storage_net_snapshot.sh — one storage/traffic snapshot, to be taken before and after a leg.
++#
++#   scripts/storage_net_snapshot.sh before B2-r1 org.meshcrowd.meter
++#   scripts/storage_net_snapshot.sh after  B2-r1 org.meshcrowd.meter
++#   analysis/storage_delta.py runs/B2-r1-before.txt runs/B2-r1-after.txt
++#
++# Everything here is readable without root on a release build except the run-as lines, which
++# are attempted and skipped (the app-side StorageProbe covers the same ground on release builds).
++set -u -o pipefail
++
++WHEN="${1:?before|after}"
++LABEL="${2:?leg label}"
++PKG="${3:-org.meshcrowd.meter}"
++OUT="runs/${LABEL}-${WHEN}.txt"
++mkdir -p runs
++{
++  echo "# snapshot when=$WHEN label=$LABEL package=$PKG"
++  echo "time: $(date -Is)"
++  echo "uptime_s: $(awk '{print int($1)}' /proc/uptime 2>/dev/null || adb shell cat /proc/uptime | tr -d '\r' | awk '{print int($1)}')"
++  echo "== device storage of the package (dumpsys diskstats)"
++  adb shell dumpsys diskstats 2>/dev/null | tr -d '\r' \
++    | awk '/Package Names:/{p=1} p{print} /App Sizes:/{q=1} q&&/^$/{exit}' | head -40
++  echo "== app-private bytes via run-as (debuggable builds only)"
++  for d in files cache no_backup; do
++    v=$(adb shell "run-as $PKG du -sb $d 2>/dev/null" | tr -d '\r' | grep -o '^[0-9]*' || true)
++    echo "du_${d}_bytes: ${v:-unavailable}"
++  done
++  n=$(adb shell "run-as $PKG sh -c 'find files -type f 2>/dev/null | wc -l'" | tr -d '\r' | grep -o '[0-9]*$' || true)
++  echo "file_count: ${n:-unavailable}"
++  echo "== external files dir (works on release builds too)"
++  adb shell "du -sb /sdcard/Android/data/$PKG/files 2>/dev/null" | tr -d '\r'
++  adb shell "find /sdcard/Android/data/$PKG/files -type f -printf '%s %p\n' 2>/dev/null | sort -n | tail -20" | tr -d '\r'
++  echo "== per-UID network counters"
++  adb shell dumpsys netstats --uid 2>/dev/null | tr -d '\r' \
++    | grep -E "uid=|rxBytes|txBytes|^  [0-9]{4,6}:" | head -40
++  echo "== TrafficStats as the app sees them (logcat tail, from StorageProbe)"
++  adb shell "dumpsys activity providers | grep -q $PKG" 2>/dev/null || true
++  adb logcat -d -s MeshCrowdMeter:V 2>/dev/null | tr -d '\r' | grep -E "traffic|mobile_rx" | tail -5
++  echo "== battery level at snapshot time"
++  adb shell dumpsys battery 2>/dev/null | tr -d '\r' | grep -E "level|scale|voltage|temperature|status|plugged"
++} > "$OUT" 2>&1
++echo "wrote $OUT"
+diff --git a/evaluation/meter/scripts/sync_probes.sh b/evaluation/meter/scripts/sync_probes.sh
+new file mode 100755
+index 0000000..125578a
+--- /dev/null
++++ b/evaluation/meter/scripts/sync_probes.sh
+@@ -0,0 +1,52 @@
++#!/usr/bin/env bash
++# sync_probes.sh — keep the Route A copies of the probe classes identical to the canonical ones.
++#
++#   evaluation/meter/probes/*.kt                     canonical (used by the meter APK)
++#   evaluation/android/src/main/java/org/meshcrowd/probes/   the campaign build's copies
++#
++# Two trees, one source of truth. Run this after editing a probe, and run it with --check in CI or
++# before a measurement session: a mismatch means the campaign APK and the meter APK would count
++# different things, which invalidates any comparison between them.
++set -u -o pipefail
++shopt -s nullglob
++cd "$(dirname "$0")/.."                       # -> evaluation/meter
++SRC=probes
++DST=../android/src/main/java/org/meshcrowd/probes
++
++case "${1:-}" in
++  --check)
++    st=0
++    mkdir -p "$DST"
++    for f in "$SRC"/*.kt; do
++      b=$(basename "$f")
++      if ! cmp -s "$f" "$DST/$b"; then
++        echo "DRIFT: $b differs between $SRC and $DST"
++        echo "       fix with: scripts/sync_probes.sh"
++        st=1
++      fi
++    done
++    for f in "$DST"/*.kt; do
++      b=$(basename "$f")
++      [ -f "$SRC/$b" ] || { echo "STRAY: $DST/$b has no canonical counterpart"; st=1; }
++    done
++    [ "$st" = 0 ] && echo "probes in sync ($(ls "$SRC"/*.kt | wc -l) files)"
++    exit "$st"
++    ;;
++  ""|--force)
++    mkdir -p "$DST"
++    n=0
++    for f in "$SRC"/*.kt; do
++      cp -f "$f" "$DST/$(basename "$f")" && n=$((n+1))
++    done
++    echo "copied $n file(s) to $DST"
++    # the campaign tree may hold a probe that was later removed upstream
++    for f in "$DST"/*.kt; do
++      [ -f "$SRC/$(basename "$f")" ] || { echo "removing stray $(basename "$f")"; rm -f "$f"; }
++    done
++    "$0" --check
++    ;;
++  *)
++    echo "usage: scripts/sync_probes.sh [--check|--force]" >&2
++    exit 2
++    ;;
++esac
+diff --git a/evaluation/meter/templates/consent-form.md b/evaluation/meter/templates/consent-form.md
+new file mode 100644
+index 0000000..3876342
+--- /dev/null
++++ b/evaluation/meter/templates/consent-form.md
+@@ -0,0 +1,91 @@
++# Participant information sheet and consent form — MeshCrowd usability sessions
++
++> **Fill every `[ ]` before you print.** Do not run the sessions with the ethics line left
++> blank, and do not write an approval number that does not exist. If your institution has no
++> formal review step for a minimal-risk interface study, say exactly that in one sentence and
++> describe the procedure you did follow — a plain statement of what happened is defensible in a
++> paper, an invented approval reference is not.
++
++## 1. Information sheet
++
++**Study.** MeshCrowd: measuring how people use a passive RF crowd- and vehicle-sensing app on
++their own phone (usability and permission flow).
++
++**Who runs it.** [Name(s) of the experimenter], supervised by [Supervisor], Department of
++[Department], Ionian University, Plateia Tsirigoti 7, Corfu, Greece. Contact: [email] / [phone].
++
++**What you will be asked to do.** One session of about [30–45] minutes on a [handset model]
++running Android [version], with the MeshCrowd [campaign build / measurement build] installed:
++1. eight short tasks on the phone itself (install/launch, grant the permissions the app asks for,
++   start a sensing session, read the crowd estimate, hold a session for a walk, read the score and
++   badges, export the session log, stop the app);
++2. three short questionnaires afterwards (10 + 2 + 6 items each, all on a 1–5 scale, plus a
++   workload rating);
++3. permission to keep the app's own session log for that run.
++
++**What is recorded.**
++- For each task: whether it was completed, how long it took, how many tries, whether you asked for
++  help, and whether you ended up on the screen the task was about.
++- The questionnaire answers, tied to a **participant code you choose** (e.g. `P07`), not to your name.
++- Handset model, Android version, and app version.
++- The app's session log: radio signal strength readings and scan timings from the phone's own
++  Wi-Fi/Bluetooth interfaces, with timestamps.
++
++**What is not recorded.** No audio, no photographs, no camera or microphone use — the app does not
++use them at any point. No contact details, no names, no account identifiers, no location history, no
++addresses of nearby devices: the app keeps no persistent beacon identifiers, and the log we retain is
++checked for that before it is stored. Your personal phone number, accounts, and installed apps are
++not inspected or copied.
++
++**Risks and discomfort.** Minimal. The sensing run keeps the radio active, so the phone may become
++warm and the battery may drain faster than usual; we keep a charger available and stop the run on
++request. Granting the location/bluetooth permissions may feel intrusive; you may decline any
++permission, in which case we record that you declined and what the app then did — that is itself a
++result.
++
++**Benefits.** None direct. Your answers improve the interface and let us report honestly what a
++phone can and cannot do in this role.
++
++**Afterwards.** You get a copy of this form. The data are stored on a [full-disk-encrypted] machine,
++kept for [X] years after publication, then deleted. An anonymised version of the task table may be
++published with the paper; it contains no names, faces, voices, or device identifiers.
++
++**Withdrawal.** You may stop at any point without giving a reason, and you may ask us to delete
++everything recorded from your session up to [date]; the study contact above is the way to do it.
++
++**Questions.** [Name], [email]. [Optional: institutional contact for research-ethics concerns.]
++
++## 2. Consent
++
++I have read the information sheet (or it has been read to me) and I understand:
++- what I will do, and that the app will hold the radio active during the session;
++- which data are recorded, and that no camera or microphone data are recorded;
++- that I may refuse any permission and may stop at any time;
++- that the anonymised results may be published in a research paper.
++
++I agree to take part, and to the retention of the session log for this run.
++
++| | |
++|---|---|
++| Participant code (chosen by the participant) | |
++| Signature (or "verbal consent recorded") | |
++| Date / time | |
++| Experimenter | |
++| Consent copy given to participant | yes / no |
++| Camera/microphone permission declined during the session? | yes / no / n/a |
++| Any permission the participant refused, and what happened | |
++
++## 3. Experimenter notes for this session
++
++- [ ] Handset at ≥ 80 % charge, adaptive charging **off**, battery saver **off**, 40 % brightness.
++- [ ] Participant given the information sheet and had time to ask questions.
++- [ ] Task sheet open (`templates/usability_tasks.csv`), one row per task, filled in **as it happens**.
++- [ ] Questionnaires given only after all eight tasks, with no help reading the items.
++- [ ] Session log exported to `[dir]`, participant code checked against the CSV row.
++- [ ] Deviations from the script noted in the line below (a deviation is data, not a mistake to hide).
++
++Deviations / remarks:
++
++```
++
++```
+diff --git a/evaluation/meter/templates/leg-log.csv b/evaluation/meter/templates/leg-log.csv
+new file mode 100644
+index 0000000..ea473ce
+--- /dev/null
++++ b/evaluation/meter/templates/leg-log.csv
+@@ -0,0 +1,7 @@
++leg,device,android,build_id,battery_capacity_mAh,battery_health_pct,adaptive_charging,adaptive_battery,battery_saver,battery_optimization_for_app,screen_brightness_pct,doze_mode,started_at,ended_at,soc_start,soc_end,temp_start_c,temp_end_c,charger_connected,app_version,package,uid,leg_notes
++B1-idle-baseline,,,,,,,,,,,,,,,,,,,,,,
++B2-sensing-screen-off,,,,,,,,,,,,,,,,,,,,,,
++B3-sensing-screen-on-40pct,,,,,,,,,,,,,,,,,,,,,,
++B4-two-phone-transit,,,,,,,,,,,,,,,,,,,,,,
++B5-forced-doze,,,,,,,,,,,,,,,,,,,,,,
++B6-battery-saver,,,,,,,,,,,,,,,,,,,,,,
+diff --git a/evaluation/meter/templates/results-worksheet.md b/evaluation/meter/templates/results-worksheet.md
+new file mode 100644
+index 0000000..9bdf6b8
+--- /dev/null
++++ b/evaluation/meter/templates/results-worksheet.md
+@@ -0,0 +1,83 @@
++# Results worksheet — fill this while the legs run, not afterwards
++
++One row per leg repetition. Anything you leave blank here will come out of
++`analysis/meter_report.py` as `n/m`, and the manuscript sentence that depends on it must then be
++deleted, not softened. **Do not fill a cell from memory or from a second run of a different leg.**
++
++## 0. Device card (fill once per handset)
++
++| Field | Value | Where it came from |
++|---|---|---|
++| Model / codename | | `adb shell getprop ro.product.model` / `ro.product.device` |
++| Android version / SDK | | `adb shell getprop ro.build.version.release` / `.sdk` |
++| Build ID | | `ro.build.id` |
++| Rated capacity (mAh) | | `adb shell dumpsys battery properties \| grep -i charge` or the spec sheet — say which |
++| Battery health / cycle count | | `dumpsys batterystats \| grep -i "Health\|Cycle"` if the OEM exposes it |
++| `current_now` readable? | yes / no | `adb shell cat /sys/class/power_supply/battery/current_now` |
++| Kernel / baseband | | `uname -r`, `getprop gsm.version.baseband` |
++| App under test + version | | campaign build or `org.meshcrowd.meter` `meter-1.0` |
++| Signing | release key / debug key | a debug-signed meter installs beside the campaign build; note which one you measured |
++
++## 1. Per-leg rows
++
++Copy the block for each repetition. `templates/leg-log.csv` is the machine-readable version of the
++same fields — keep both consistent, the CSV is what `analysis/*.py` and the release use.
++
++```
++leg:            B2 rep 1   (B1..B6, rep 1..3)
++start / end:    12:00 / 12:30        # from runs/<leg>-<ts>/start.txt, end.txt
++SOC start/end:  92 / 89              # the sampler's first and last unplugged rows
++temperature:    29.6 C -> 31.0 C     # dumpsys battery at both ends; > 5 C swing = repeat the leg
++screen:         off                  # off / on-40% / as-noted
++radios:         BLE on, Wi-Fi on (scan-result polling)
++battery saver:  off                  # off / on
++Doze:           inactive -> idle     # from deviceidle-after.txt; note any forced force-idle
++adaptive charging: off               # verify in Settings, not by assumption
++adaptive battery (per-app): Unrestricted
++charger:        unplugged the whole leg   # if it was ever plugged in, mark the leg void
++metrics.json:   runs/B2-.../metrics.json
++anomalies:      service killed once at 12:14, restarted by startForeground   # a kill is a result
++usable?         yes / void (reason)
++```
++
++Void rules, decided **before** looking at the data: a leg is void if the charger was connected at
++any point, if the phone was used as a phone, if a system update or a thermal-throttle event landed
++in the window, or if the temperature rose more than 5 °C. Record the void; do not delete the folder.
++
++## 2. Derived values, per leg (what the scripts compute, so you can spot nonsense)
++
++| Quantity | Source line in `metrics.json` | Sanity check |
++|---|---|---|
++| Drain, %/h | `soc.soc_pct_per_h` | B1 should be near zero and always below B2 |
++| Quantisation floor | `soc.quantisation_pct_per_h_per_step` | if `resolution_note` is "below the quantisation floor", extend the leg; do not report the number |
++| Discharge current | `current.mA_discharge` | `null` on devices without `current_now` — that is a finding, not a failure |
++| Net-of-idle | computed by `meter_report.py` | negative values mean B1 was measured warmer/steadier; re-run |
++| Bursts requested vs results delivered | `cadence.totals.*`, `cadence.delivered_per_start` | delivered per burst < 1 in Doze is the expected throttling signature |
++| Epoch completion ratio | `cadence.epoch_completion_ratio` | < 1 in B5 is the coverage-gap mechanism |
++| Epoch gaps | `events.epoch_gap_s` | `missed_epochs_gt_2x_nominal` is the count that goes in the prose |
++| Active Wi-Fi scan acceptance | `cadence.wifi_startscan_accepted_ratio` | 0.000 on Android 9+ for a third-party app is the documented behaviour — report the zero |
++| Storage growth | `storage.bytes_growth_per_hour` | extrapolate to the campaign cadence in the text, show both |
++| Mobile traffic | `storage.mobile_bytes_total` | expected ≈ 0; state the number, not the adjective |
++| Service survival | `events.events` + `logcat.txt` | every kill gets a sentence in the limitations |
++
++## 3. Which number retires which reviewer item
++
++| Reviewer item | Fills | Paper location |
++|---|---|---|
++| "no energy measurements" | B1/B2/B3 drain, current, net-of-idle | Section V, new subsection + `tab:cost` |
++| "no background-operation analysis" | B5 (and B6) cadence + epoch gaps + Doze splits | Section V, same table + `tab:cadence` |
++| "storage/traffic impact unquantified" | `storage.*` + `mobile_bytes_total` | Section V + `tab:storage`; also reword the privacy paragraph from "no data leaves" to "measured: N bytes in M hours" |
++| "no usability evidence for the gamification layer" | `tab:usability`, `tab:usability-q` | Section V (gamification discussion) + Discussion sentence on onboarding burden |
++| "consent not documented" | signed `consent-form.md` per participant | Section IV protocol sentence + the release README |
++| M1 per-cell counts | the tally sheets, **not** this kit | Section IV tables + Fig. 6 regeneration |
++
++## 4. Before the numbers enter the manuscript
++
++1. `tests/run_tests.sh` passes on this copy of the kit (it does, as of 2026-10-05).
++2. `runs/` is archived (the folder, not just the tables) and its size + file count recorded in the
++   release README; the session-log release should ship the CSVs with participant codes removed.
++3. Every value that reaches the paper appears verbatim in a `metrics.json` — re-run
++   `analysis/parse_leg.py` on the archived folder and diff, so a transcription error cannot survive.
++4. Anything still `n/m` is described as not measured. The paper already says so in
++   `\subsection{Not instrumented}`; edit that subsection rather than deleting it, keeping the
++   legs you did not run listed as gaps.
+diff --git a/evaluation/meter/templates/usability_survey.csv b/evaluation/meter/templates/usability_survey.csv
+new file mode 100644
+index 0000000..1537246
+--- /dev/null
++++ b/evaluation/meter/templates/usability_survey.csv
+@@ -0,0 +1,2 @@
++participant,age,gender,handset,android,prior_experience_1to5,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,U1,U2,mental,physical,temporal,performance,effort,frustration,w_mental,w_physical,w_temporal,w_performance,w_effort,w_frustration,comment
++P01,31,female,Pixel 6a,14,3,4,4,4,4,4,4,4,4,4,4,4,4,35,20,40,60,55,30,15,15,15,15,15,15,example row - delete before use
+diff --git a/evaluation/meter/templates/usability_tasks.csv b/evaluation/meter/templates/usability_tasks.csv
+new file mode 100644
+index 0000000..7dee3d2
+--- /dev/null
++++ b/evaluation/meter/templates/usability_tasks.csv
+@@ -0,0 +1,4 @@
++participant,task_id,task_name,attempts,success,time_s,correct_ui,help_requested,notes
++P01,1,open app and grant permissions,1,1,42.5,1,0,example row - delete before use
++P01,2,start a sensing session,1,1,11.0,1,0,
++P01,3,read the current crowd estimate off the screen,2,1,28.7,0,1,
+diff --git a/evaluation/meter/tests/make_fixture.py b/evaluation/meter/tests/make_fixture.py
+new file mode 100644
+index 0000000..f21a2f8
+--- /dev/null
++++ b/evaluation/meter/tests/make_fixture.py
+@@ -0,0 +1,177 @@
++#!/usr/bin/env python3
++"""SYNTHETIC FIXTURE GENERATOR - not measurement data.
++
++Builds tests/fixture/<leg>/ directories with exactly the file names and column headers that
++scripts/run_leg.sh and the app-side probes produce, so the analysers can be exercised without a
++handset. Every number here is a round fake; none of it may reach the manuscript. Run
++tests/run_tests.sh, which asserts the analysers recover the values this file put in.
++"""
++from __future__ import annotations
++
++import csv
++import json
++import math
++import os
++import random
++import shutil
++from pathlib import Path
++
++HERE = Path(__file__).resolve().parent
++FIX = HERE / "fixture"
++random.seed(20261005)
++
++# the ground truth the tests assert against
++TRUTH = {
++    "leg_duration_s": 1200.0,
++    "soc_start": 100, "soc_end": 98, "scale": 100,
++    "expected_pct_per_h": round(2.0 / (1200.0 / 3600.0), 3),      # 6.0
++    "mean_current_ma": -320.0,
++    "ble_starts_total": 200, "ble_results_total": 1040,
++    "wifi_tried": 40, "wifi_accepted": 0,
++    "epochs_attempted": 80, "epochs_completed": 68,
++    "epoch_gap_s": 15.0,
++    "storage_growth_bytes": 188_000,
++    "uid_bytes_total": 0,
++    "doze_windows": 5,
++}
++
++
++def battery_rows(n=241, start=100, end=98, scale=100, current_ma=-320.0):
++    out = []
++    for i in range(n):
++        t = i * 5.0
++        frac = i / (n - 1)
++        lvl = int(round(start + (end - start) * frac))
++        cur = current_ma * 1000.0 * (1.0 + 0.05 * math.sin(i / 7.0))
++        out.append({"elapsed_s": f"{t:.1f}", "level": lvl, "scale": scale,
++                    "voltage_duV": int(3850 + 40 * math.sin(i / 40.0)) * 1000,
++                    "temperature_dC": 296 + (i % 3), "status": 4, "plugged": 0,
++                    "current_uA": int(cur), "device_idle": 1 if i >= n - TRUTH["doze_windows"] * 12 else 0,
++                    "light_idle": 0, "screen": "off"})
++    return out
++
++
++def write_csv(path: Path, rows: list[dict]):
++    path.parent.mkdir(parents=True, exist_ok=True)
++    with path.open("w", newline="") as fh:
++        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
++        w.writeheader()
++        w.writerows(rows)
++
++
++def gen_leg(name: str, with_app_logs: bool = True) -> Path:
++    leg = FIX / name
++    if leg.exists():
++        shutil.rmtree(leg)
++    n = int(TRUTH["leg_duration_s"] / 5) + 1
++    rows = battery_rows(n=n)
++    # shell sampler: different column names for the same quantities
++    shell = []
++    for r in rows:
++        e = float(r["elapsed_s"])
++        d = {k: v for k, v in r.items() if k not in ("device_idle", "screen")}
++        d["idle_state"] = 4 if r["device_idle"] == 1 else 0
++        d["screen"] = "Asleep" if r["screen"] == "off" else "Awake"
++        d["timestamp"] = "2026-10-05T%02d:%02d:%02d" % (12 + int(e // 3600), int(e // 60) % 60, int(e % 60))
++        shell.append(d)
++    write_csv(leg / "battery.csv", shell)
++
++    st = []
++    step = TRUTH["storage_growth_bytes"] // 20
++    for i in range(21):
++        t = i * 60.0
++        st.append({"elapsed_s": f"{t:.1f}", "files_bytes": 512_000 + step * i, "cache_bytes": 40_000,
++                   "nobackup_bytes": 0, "session_files": 3 + i, "exported_bytes": 0})
++    write_csv(leg / "storage.csv", st)
++
++    if with_app_logs:
++        write_csv(leg / "app-logs" / "battery-B2.csv", rows)
++        cad = []
++        for i in range(20):
++            cad.append({"window_start_s": i * 60.0, "ble_scan_starts": 10, "ble_results": 52,
++                        "ble_links": 3, "wifi_polls": 2, "wifi_polls_fresh": 1,
++                        "wifi_startscan_tried": 2, "wifi_startscan_accepted": 0,
++                        "epochs_attempted": 4, "epochs_completed": int(68 / 20) + (1 if i < 8 else 0),
++                        "screen_on": 0, "device_idle": 1 if i >= 15 else 0, "light_idle": 0})
++        write_csv(leg / "app-logs" / "cadence-B2.csv", cad)
++        stg = []
++        for i in range(21):
++            stg.append({"elapsed_s": i * 60.0, "files_bytes": 512_000 + step * i, "cache_bytes": 40_000,
++                        "nobackup_bytes": 0, "log_files": 3 + i, "log_bytes_max": 24_000,
++                        "log_bytes_total": 512_000 + step * i,
++                        "traffic": f"mobile_rx={1000+i};mobile_tx={2000+i};uid_rx={1000+i};uid_tx={1000+i}"})
++        write_csv(leg / "app-logs" / "storage-B2.csv", stg)
++        ev = []
++        t = 0.0
++        for i in range(int(TRUTH["leg_duration_s"] / TRUTH["epoch_gap_s"])):
++            ev.append({"elapsed_s": round(t, 1), "event": "epoch_attempted"})
++            t += TRUTH["epoch_gap_s"]
++        ev.insert(5, {"elapsed_s": 75.0, "event": "screen_off"})
++        write_csv(leg / "app-logs" / "events-B2.csv", ev)
++
++    (leg / "batterystats-after.txt").write_text("""Battery stats for u0a234/com.example
++  Time on battery: +20m 3s 999ms running, 0s dozing
++  Estimated power use (mAh):
++    Capacity: 4600, Computed drain: 46.2, actual drain: 45.9
++    Screen: 0.0
++    App: 6.1
++    Bluetooth: 1.9
++    Wifi: 3.4
++    Uid 10234 (org.meshcrowd.meter): 4.81
++  Wake lock u0a234/MeterService: +1m 12s 345ms (41 times) partial
++  Wake lock u0a234/WifiManager: +14.500ms (2 times) partial
++""", encoding="utf-8")
++    (leg / "deviceidle-after.txt").write_text(
++        "  mDeviceIdleMode=4  mLightDeviceIdleMode=0\n  step=IDLE\nReason: Alarm 12\nReason: Alarm 3\n",
++        encoding="utf-8")
++    (leg / "netstats-before.txt").write_text("  10234: rxBytes=1000 txBytes=2000\n", encoding="utf-8")
++    (leg / "netstats-after.txt").write_text("  10234: rxBytes=2021 txBytes=3021\n", encoding="utf-8")
++    (leg / "SYNTHETIC.txt").write_text(
++        "SYNTHETIC FIXTURE - generated by tests/make_fixture.py.\n"
++        "Not a measurement. Never quote anything in this directory in the paper.\n", encoding="utf-8")
++    return leg
++
++
++def gen_usability():
++    u = FIX / "usability"
++    u.mkdir(parents=True, exist_ok=True)
++    hdr = ["participant", "task_id", "task_name", "attempts", "success", "time_s", "correct_ui", "help_requested", "notes"]
++    rows = []
++    for p in range(1, 9):
++        for tid, ok, t in ((1, 1, 40), (2, 1, 12), (3, 1, 25), (4, 0, 90), (5, 1, 30),
++                           (6, 1, 44), (7, 0, 120), (8, 1, 18)):
++            if tid == 4 and p > 6:
++                ok = 1
++            rows.append({"participant": f"P{p:02d}", "task_id": tid, "task_name": f"task{tid}",
++                         "attempts": 1 if ok else 2, "success": ok, "time_s": t + p,
++                         "correct_ui": ok, "help_requested": 1 if (tid + p) % 9 == 0 else 0, "notes": ""})
++    write_csv(u / "usability_tasks.csv", rows)
++    shdr = (["participant", "age", "gender", "handset", "android", "prior_experience_1to5"]
++            + [f"Q{i}" for i in range(1, 11)] + ["U1", "U2"]
++            + ["mental", "physical", "temporal", "performance", "effort", "frustration"]
++            + [f"w_{k}" for k in ("mental", "physical", "temporal", "performance", "effort", "frustration")]
++            + ["comment"])
++    srows = []
++    for p in range(1, 9):
++        q = [4] * 10 if p % 2 == 0 else [3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
++        srows.append({"participant": f"P{p:02d}", "age": 30 + p, "gender": "f" if p % 2 else "m",
++                      "handset": "Pixel 6a", "android": 14, "prior_experience_1to5": 3,
++                      **{f"Q{i}": q[i - 1] for i in range(1, 11)}, "U1": 4, "U2": 2,
++                      "mental": 40, "physical": 20, "temporal": 35, "performance": 65,
++                      "effort": 50, "frustration": 30,
++                      **{f"w_{k}": 15 for k in ("mental", "physical", "temporal", "performance", "effort", "frustration")},
++                      "comment": ""})
++    write_csv(u / "usability_survey.csv", srows)
++    return u
++
++
++if __name__ == "__main__":
++    FIX.mkdir(parents=True, exist_ok=True)
++    (FIX / "SYNTHETIC-FIXTURE.txt").write_text(
++        "Everything under this directory is generated by tests/make_fixture.py for parser tests.\n"
++        "It is NOT measurement data and must not be cited, pasted, or plotted.\n", encoding="utf-8")
++    good = gen_leg("B2-sensing-screen-off_1")
++    broken = gen_leg("B5-forced-doze_1", with_app_logs=False)
++    us = gen_usability()
++    print(json.dumps({"truth": TRUTH, "legs": [good.name, broken.name],
++                      "usability": str(us.relative_to(HERE))}, indent=2))
+diff --git a/evaluation/meter/tests/run_tests.sh b/evaluation/meter/tests/run_tests.sh
+new file mode 100644
+index 0000000..f3f872c
+--- /dev/null
++++ b/evaluation/meter/tests/run_tests.sh
+@@ -0,0 +1,116 @@
++#!/usr/bin/env bash
++# run_tests.sh — exercise the analysers end to end on the SYNTHETIC fixture.
++#
++# What this proves: the capture format the probes and run_leg.sh write is the format the
++# analysers read, the units come out right, and a missing capture produces "n/m" instead of a
++# zero. What it does NOT prove: nothing about the phone. Every value here is generated by
++# tests/make_fixture.py; none of it may reach the manuscript.
++set -u -o pipefail
++cd "$(dirname "$0")/.."
++A=analysis; T=tests; F=$T/fixture
++rc=0
++say() { printf '%-46s %s\n' "$1" "$2"; }
++chk() { # name, expected, actual
++  if [ "$2" = "$3" ]; then say "$1" "PASS ($3)"; else say "$1" "FAIL expected=$2 got=$3"; rc=1; fi
++}
++jget() { python3 -c "
++import json,sys
++d=json.load(open(sys.argv[1]))
++cur=d
++for k in sys.argv[2].split('.'):
++    cur = cur.get(k) if isinstance(cur,dict) else None
++    if cur is None: break
++print('NULL' if cur is None else (round(cur,4) if isinstance(cur,float) else cur))" "$1" "$2"; }
++
++echo "== regenerating fixture"
++python3 $T/make_fixture.py > /dev/null || { echo "fixture generation failed"; exit 1; }
++[ -f $T/fixture/SYNTHETIC-FIXTURE.txt ] || { echo "fixture lost its SYNTHETIC marker"; exit 1; }
++
++echo "== parse_leg.py"
++python3 $A/parse_leg.py $F/B2-sensing-screen-off_1 --uid 10234 > /dev/null || { echo "parse B2 failed"; exit 1; }
++python3 $A/parse_leg.py $F/B5-forced-doze_1 > /dev/null || { echo "parse B5 failed"; exit 1; }
++M2=$F/B2-sensing-screen-off_1/metrics.json
++M5=$F/B5-forced-doze_1/metrics.json
++chk "drain = 2%/20min -> 6.0 %/h"    "6.0"   "$(jget $M2 soc.soc_pct_per_h)"
++chk "SOC steps observed"              "2"     "$(jget $M2 soc.soc_steps_observed)"
++chk "quantisation floor = 3 %/h"      "3.0"   "$(jget $M2 soc.quantisation_pct_per_h_per_step)"
++chk "CURRENT_NOW mean -> 320.9 mA"    "320.92" "$(jget $M2 current.mA_discharge)"
++chk "IQR is low-then-high"            "309.55" "$(python3 -c "import json;print(json.load(open('$M2'))['current']['mA_iqr'][0])")"
++chk "ble bursts requested (sum)"      "200"   "$(jget $M2 cadence.totals.ble_scan_starts)"
++chk "ble results (sum)"               "1040"  "$(jget $M2 cadence.totals.ble_results)"
++chk "results per burst"               "5.2"   "$(jget $M2 cadence.delivered_per_start)"
++chk "wifi startScan accepted ratio"   "0.0"   "$(jget $M2 cadence.wifi_startscan_accepted_ratio)"
++chk "epoch completion ratio 68/80"    "0.85"  "$(jget $M2 cadence.epoch_completion_ratio)"
++chk "epoch gap median 15 s"           "15.0"  "$(jget $M2 events.epoch_gap_s.median)"
++chk "no missed epochs"                "0"     "$(jget $M2 events.epoch_gap_s.missed_epochs_gt_2x_nominal)"
++chk "storage growth over leg"         "188000" "$(jget $M2 storage.bytes_growth)"
++chk "mobile bytes tiny but reported"  "40"    "$(jget $M2 storage.mobile_bytes_total)"
++chk "batterystats uid mAh"            "4.81"  "$(jget $M2 batterystats.estimated_mah_for_uid.'uid 10234')"
++chk "wake lock seconds 1m12s"         "72.3"  "$(python3 -c "import json;print(json.load(open('$M2'))['batterystats']['wake_lock_seconds']['u0a234/MeterService'])")"
++chk "app-side battery preferred"      "battery-B2.csv" "$(jget $M2 battery_source)"
++chk "no gaps on a complete leg"       "0"     "$(python3 -c "import json;print(len(json.load(open('$M2'))['gaps']))")"
++
++echo "== a leg with no app logs must yield nulls, not zeros"
++chk "B5 cadence not measured"         "NULL"  "$(jget $M5 cadence.totals.ble_scan_starts)"
++chk "B5 flags a gap"                  "cadence" "$(python3 -c "import json;print(json.load(open('$M5'))['gaps'][0])")"
++chk "B5 drain still parsed from shell" "6.0"  "$(jget $M5 soc.soc_pct_per_h)"
++
++echo "== meter_report.py"
++python3 $A/meter_report.py $M2 $M5 --capacity-mah 4600 --outdir $T/out > /dev/null || { echo "meter_report failed"; exit 1; }
++chk "measurements.tex exists"         "yes" "$([ -f $T/out/measurements.tex ] && echo yes)"
++chk "numbers.md exists"               "yes" "$([ -f $T/out/numbers.md ] && echo yes)"
++chk "missing leg renders as n/m"      "1"    "$(grep -c 'n/m' $T/out/measurements.tex | head -1 | awk '{print ($1>0)?1:0}')"
++grep -q "276.00" $T/out/measurements.tex && say "mAh/h = 6%/h x 4600 mAh" "PASS (276.00)" \
++  || { say "mAh/h = 6%/h x 4600 mAh" "FAIL"; rc=1; }
++
++echo "== usability_report.py"
++python3 $A/usability_report.py --tasks $F/usability/usability_tasks.csv \
++  --survey $F/usability/usability_survey.csv --outdir $T/out > /dev/null || { echo "usability failed"; exit 1; }
++chk "SUS median (4x50, 4x37.5)"       "43.8"  "$(grep -o 'usability was [0-9.]*' $T/out/usability_numbers.md | awk '{print $3}')"
++chk "UMUX median = 75"                "75.0"  "$(grep -o 'UMUX-Lite gave [0-9.]*' $T/out/usability_numbers.md | awk '{print $3}')"
++chk "pilot label present"             "1"     "$(grep -ci pilot $T/out/usability_numbers.md | head -1 | awk '{print ($1>0)?1:0}')"
++# the fixture makes U4 deliberately hard: only P07 and P08 succeed -> 2/8.
++chk "task U4 success 2/8"             "2/8"   "$(grep -o 'U4 & task4 & [0-9]*/[0-9]*' $T/out/usability.tex | awk -F'& ' '{print $3}')"
++# Wilson 95% for 2/8, computed by hand: p=.25, den=1.4802 -> [7.1, 59.1]
++chk "Wilson CI for 2/8"               "[7.1,59.1]" "$(python3 -c "
++import re
++row = [l for l in open('$T/out/usability.tex') if l.strip().startswith('U4')][0]
++m = re.search(r'\[([0-9.]+),\\\\,([0-9.]+)\]', row)
++print('[%s,%s]' % m.groups() if m else 'none')")"
++chk "no 0/8 task prints a zero width CI" "0"   "$(grep -c '\[0.0,0.0\]' $T/out/usability.tex)"
++
++echo "== generated LaTeX must be structurally sound (brace + column lint)"
++python3 - "$T/out/measurements.tex" "$T/out/usability.tex" <<'PYEOF' || rc=1
++import re, sys
++bad = 0
++for f in sys.argv[1:]:
++    t = open(f, encoding="utf-8").read()
++    if t.count("{") != t.count("}"):
++        print(f"  {f}: unbalanced braces {t.count('{')} vs {t.count('}')}"); bad = 1
++    for env in ("table", "table*", "tabular"):
++        o = len(re.findall(r"\\begin\{" + re.escape(env) + r"\}", t))
++        c = len(re.findall(r"\\end\{" + re.escape(env) + r"\}", t))
++        if o != c:
++            print(f"  {f}: {env} begin={o} end={c}"); bad = 1
++    for blk in re.findall(r"\\begin\{tabular\}\{([^}]*)\}(.*?)\\end\{tabular\}", t, re.S):
++        cols = len(re.sub(r"[^lcrpXm]", "", blk[0]))
++        for row in blk[1].strip().splitlines():
++            r = row.strip()
++            if not r or r.startswith("%") or "\\\\" not in r:
++                continue
++            if r.startswith("\\multicolumn") or "toprule" in r or "midrule" in r or "bottomrule" in r:
++                continue
++            n = len([c for c in r.split("\\\\")[0].split("&")])
++            if n != cols:
++                print(f"  {f}: tabular row has {n} cells, header declares {cols}: {r[:70]}"); bad = 1
++print("  LaTeX lint: " + ("FAIL" if bad else "PASS"))
++sys.exit(bad)
++PYEOF
++
++echo
++if [ "$rc" = 0 ]; then
++  echo "ALL CHECKS PASSED on the synthetic fixture (no real measurement involved)."
++else
++  echo "SOME CHECKS FAILED - fix the analyser before trusting a real capture."
++fi
++exit $rc
+diff --git a/evaluation/schemas/session.schema.json b/evaluation/schemas/session.schema.json
+index f2ec963..bed923e 100644
+--- a/evaluation/schemas/session.schema.json
++++ b/evaluation/schemas/session.schema.json
+@@ -60,6 +60,28 @@
+     "transit": { "type": "array", "items": { "type": "object" } },
+     "mesh": { "type": "array", "items": { "type": "object" } },
+     "rewards": { "type": "array", "items": { "type": "object" } },
++    "cost": {
++      "type": "object",
++      "description": "Optional per-session cost accounting written by the meter probes (evaluation/meter). A null value means the quantity was not measurable on this device or in this capture; it must never be replaced by zero, and the manuscript sentence that depends on it gets deleted instead.",
++      "properties": {
++        "legId": { "type": ["string", "null"] },
++        "socPctPerHour": { "type": ["number", "null"] },
++        "dischargeMilliampsMean": { "type": ["number", "null"] },
++        "bleScanBurstsPerHour": { "type": ["number", "null"] },
++        "bleScanResultsPerHour": { "type": ["number", "null"] },
++        "epochCompletionRatio": { "type": ["number", "null"] },
++        "epochGapSecondsMedian": { "type": ["number", "null"] },
++        "epochsMissedGt2xNominal": { "type": ["integer", "null"] },
++        "wifiStartScanAcceptedRatio": { "type": ["number", "null"] },
++        "deviceIdleShare": { "type": ["number", "null"] },
++        "logBytesGrown": { "type": ["integer", "null"] },
++        "mobileBytesTotal": { "type": ["integer", "null"] },
++        "serviceRestarts": { "type": ["integer", "null"] },
++        "temperatureCStart": { "type": ["number", "null"] },
++        "temperatureCEnd": { "type": ["number", "null"] }
++      },
++      "additionalProperties": false
++    },
+     "summary": { "type": "object" }
+   },
+   "$defs": {
+-- 
+2.47.3
+

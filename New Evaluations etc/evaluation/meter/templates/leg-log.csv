@@ -1,0 +1,7 @@
+leg,device,android,build_id,battery_capacity_mAh,battery_health_pct,adaptive_charging,adaptive_battery,battery_saver,battery_optimization_for_app,screen_brightness_pct,doze_mode,started_at,ended_at,soc_start,soc_end,temp_start_c,temp_end_c,charger_connected,app_version,package,uid,leg_notes
+B1-idle-baseline,,,,,,,,,,,,,,,,,,,,,,
+B2-sensing-screen-off,,,,,,,,,,,,,,,,,,,,,,
+B3-sensing-screen-on-40pct,,,,,,,,,,,,,,,,,,,,,,
+B4-two-phone-transit,,,,,,,,,,,,,,,,,,,,,,
+B5-forced-doze,,,,,,,,,,,,,,,,,,,,,,
+B6-battery-saver,,,,,,,,,,,,,,,,,,,,,,

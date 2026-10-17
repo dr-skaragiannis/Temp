@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "1.0.0",
+  "sessionId": "demo-2026-09-09T19-56-03Z",
+  "createdAt": "2026-09-09T19:56:03.000Z",
+  "completedAt": "2026-09-09T19:56:18.000Z",
+  "appVersion": "1.1",
+  "device": {
+    "pseudonymousId": "sha256:demo-only",
+    "model": "Pixel 8",
+    "androidApi": 35
+  },
+  "privacy": {
+    "rawIdentifiersStored": false,
+    "cameraUsed": false,
+    "microphoneUsed": false,
+    "locationIncluded": true
+  },
+  "configuration": {
+    "radiusM": 20,
+    "rangeGateDbm": -75,
+    "noiseFloorDbm": -90,
+    "epochDurationMs": 10000,
+    "stableSamples": 20
+  },
+  "samples": [
+    {
+      "timestampMs": 1788983763000,
+      "epochId": "epoch-001",
+      "linkIdHash": "sha256:8caa-demo",
+      "radioBand": "ble",
+      "frequencyMhz": 2440,
+      "rssiDbm": -58.2
+    },
+    {
+      "timestampMs": 1788983763200,
+      "epochId": "epoch-001",
+      "linkIdHash": "sha256:8caa-demo",
+      "radioBand": "ble",
+      "frequencyMhz": 2440,
+      "rssiDbm": -66.6
+    }
+  ],
+  "events": [
+    {
+      "eventId": "event-001",
+      "startMs": 1788983763200,
+      "endMs": 1788983765100,
+      "dominantBand": "ble",
+      "depthDb": 8.4,
+      "durationMs": 1900,
+      "texture": 0.31,
+      "varianceDb2": 11.45,
+      "prominenceDb": 7.8,
+      "coherentLinks": 3,
+      "classification": "pedestrian",
+      "confidence": 0.68,
+      "range": {
+        "status": "estimated-band",
+        "observedRssiDbm": -58,
+        "lowerM": 4.4,
+        "upperM": 8.2
+      }
+    }
+  ],
+  "epochs": [
+    {
+      "epochId": "epoch-001",
+      "startMs": 1788983763000,
+      "endMs": 1788983778000,
+      "place": "My place",
+      "geo": {
+        "latitude": 40.3075,
+        "longitude": 21.7906,
+        "accuracyM": 12
+      },
+      "linkCount": 33,
+      "changedLinkCount": 5,
+      "maxChangeDb": 14,
+      "changeThresholdDb": 3,
+      "fieldVerdict": "changed"
+    }
+  ],
+  "transit": [],
+  "mesh": [
+    {
+      "eventId": "event-001",
+      "nodeCount": 3,
+      "confirmed": true,
+      "fusedAccuracy": 0.81,
+      "reliabilityScore": 0.96,
+      "rewardMultiplier": 1.25
+    }
+  ],
+  "rewards": [
+    {
+      "timestampMs": 1788983765100,
+      "reason": "mesh-confirmed-pedestrian",
+      "baseXp": 10,
+      "fusionBonusXp": 15,
+      "multiplier": 1.25,
+      "awardedXp": 31.25
+    }
+  ],
+  "summary": {
+    "people": 1,
+    "vehicles": 0,
+    "disturbances": 1,
+    "rfLinks": 33,
+    "confirmedCrossings": 1
+  }
+}

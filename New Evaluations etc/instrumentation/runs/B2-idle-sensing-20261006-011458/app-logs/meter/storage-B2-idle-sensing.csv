@@ -1,0 +1,6 @@
+elapsed_s,files_bytes,cache_bytes,nobackup_bytes,log_files,log_bytes_max,log_bytes_total,traffic
+0.0,0,0,0,0,0,0,mobile_rx=1640552426;mobile_tx=409792976;uid_rx=0;uid_tx=0
+37.7,0,0,0,0,0,0,mobile_rx=1640552426;mobile_tx=409792976;uid_rx=0;uid_tx=0
+92.1,0,0,0,0,0,0,mobile_rx=1640552426;mobile_tx=409792976;uid_rx=0;uid_tx=0
+185.9,0,0,0,0,0,0,mobile_rx=1640552426;mobile_tx=409792976;uid_rx=0;uid_tx=0
+1299.2,0,0,0,0,0,0,mobile_rx=1640552426;mobile_tx=409792976;uid_rx=0;uid_tx=0

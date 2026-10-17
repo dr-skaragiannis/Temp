@@ -1,0 +1,11 @@
+Battery stats for u0a234/com.example
+  Time on battery: +20m 3s 999ms running, 0s dozing
+  Estimated power use (mAh):
+    Capacity: 4600, Computed drain: 46.2, actual drain: 45.9
+    Screen: 0.0
+    App: 6.1
+    Bluetooth: 1.9
+    Wifi: 3.4
+    Uid 10234 (org.meshcrowd.meter): 4.81
+  Wake lock u0a234/MeterService: +1m 12s 345ms (41 times) partial
+  Wake lock u0a234/WifiManager: +14.500ms (2 times) partial

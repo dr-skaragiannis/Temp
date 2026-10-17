@@ -1,0 +1,31 @@
+From bbbc044349a9a32455670ec6ef80aac85ecf516f Mon Sep 17 00:00:00 2001
+From: MeshCrowd measurement kit <meter@local>
+Date: Mon, 5 Oct 2026 21:41:19 +0000
+Subject: [PATCH 3/3] run_campaign: replace the airplane-mode checklist item
+
+Airplane mode turns Wi-Fi and Bluetooth off on the devices under test, so a B2-B6 leg run that way
+has no scan results and measures the radio switch instead of the sensing cost. The checklist now
+says mobile data off + Do Not Disturb, and calls out the exception explicitly.
+---
+ evaluation/meter/scripts/run_campaign.sh | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/evaluation/meter/scripts/run_campaign.sh b/evaluation/meter/scripts/run_campaign.sh
+index abfe2e0..54e1287 100755
+--- a/evaluation/meter/scripts/run_campaign.sh
++++ b/evaluation/meter/scripts/run_campaign.sh
+@@ -113,7 +113,10 @@ confirm() { # $1 leg
+   echo "    [ ] adaptive charging OFF, adaptive battery OFF"
+   echo "    [ ] Settings -> Apps -> $PKG -> Battery -> Unrestricted"
+   echo "    [ ] brightness 40% (B3 only: screen stays on)"
+-  echo "    [ ] airplane mode ON if you do not want incoming traffic to pollute the leg"
++  echo "    [ ] incoming traffic suppressed WITHOUT killing the radios: mobile data OFF + Do Not"
++  echo "        Disturbance. Do NOT use airplane mode on B2-B6 unless you re-enable Wi-Fi and"
++  echo "        Bluetooth right after: with Wi-Fi off there are no scan results, and a leg like"
++  echo "        that measures your radio switch, not the sensing cost."
+   echo "    [ ] leg-log.csv row started (templates/leg-log.csv)"
+   if [ -n "$(pre "$1")" ]; then echo "    [ ] runner will apply: adb shell $(pre "$1")"; fi
+   if [ -n "$(post "$1")" ]; then echo "    [ ] runner will restore: adb shell $(post "$1")"; fi
+-- 
+2.47.3
+

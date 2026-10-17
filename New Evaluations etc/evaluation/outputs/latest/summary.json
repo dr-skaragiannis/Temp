@@ -1,0 +1,229 @@
+{
+  "schemaVersion": "1.0.0",
+  "experimentId": "meshcrowd-model-evaluation-v1.1",
+  "generatedAt": "2026-09-09T00:00:00.000Z",
+  "seed": 20260909,
+  "totalScenes": 4161,
+  "includeSamples": false,
+  "reproducibilityHash": "sha256:98ad93629ae2325526106f2a0a9bd1b1fd92a047ee637e14b4bee1bff8382625",
+  "suites": {
+    "fusion": {
+      "scenes": 1512,
+      "byBand": {
+        "ble": {
+          "scenes": 504,
+          "detected": 339,
+          "detectionPct": 67.26,
+          "correctlyTyped": 283,
+          "perCrossingAccuracyPct": 56.15
+        },
+        "wifi24": {
+          "scenes": 504,
+          "detected": 376,
+          "detectionPct": 74.6,
+          "correctlyTyped": 333,
+          "perCrossingAccuracyPct": 66.07
+        },
+        "wifi5": {
+          "scenes": 504,
+          "detected": 398,
+          "detectionPct": 78.97,
+          "correctlyTyped": 355,
+          "perCrossingAccuracyPct": 70.44
+        }
+      },
+      "byRadius": {
+        "2": {
+          "scenes": 189,
+          "detectionPct": 98.94,
+          "typingPct": 95.77
+        },
+        "4": {
+          "scenes": 189,
+          "detectionPct": 97.88,
+          "typingPct": 95.77
+        },
+        "6": {
+          "scenes": 189,
+          "detectionPct": 95.77,
+          "typingPct": 93.65
+        },
+        "8": {
+          "scenes": 189,
+          "detectionPct": 93.65,
+          "typingPct": 88.36
+        },
+        "12": {
+          "scenes": 189,
+          "detectionPct": 88.89,
+          "typingPct": 79.89
+        },
+        "20": {
+          "scenes": 189,
+          "detectionPct": 75.66,
+          "typingPct": 55.56
+        },
+        "40": {
+          "scenes": 189,
+          "detectionPct": 32.8,
+          "typingPct": 4.76
+        },
+        "68": {
+          "scenes": 189,
+          "detectionPct": 5.29,
+          "typingPct": 0
+        }
+      }
+    },
+    "ranging": {
+      "scenes": 288,
+      "estimatedBands": 147,
+      "refused": 133,
+      "noiseFloor": 8,
+      "medianNaiveErrorM": 1.812,
+      "maximumNaiveErrorM": 47.467
+    },
+    "epoch": {
+      "scenes": 864,
+      "byDistance": {
+        "2": {
+          "movingScenes": 72,
+          "movementDetectionPct": 98.61,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 0
+        },
+        "4": {
+          "movingScenes": 72,
+          "movementDetectionPct": 100,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 0
+        },
+        "6": {
+          "movingScenes": 72,
+          "movementDetectionPct": 100,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 0
+        },
+        "8": {
+          "movingScenes": 72,
+          "movementDetectionPct": 100,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 1.39
+        },
+        "12": {
+          "movingScenes": 72,
+          "movementDetectionPct": 100,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 8.33
+        },
+        "20": {
+          "movingScenes": 72,
+          "movementDetectionPct": 97.22,
+          "emptyScenes": 72,
+          "stableRuleFalsePositivePct": 0,
+          "naiveRuleFalsePositivePct": 25
+        }
+      }
+    },
+    "transit": {
+      "scenes": 768,
+      "bySeparation": {
+        "3": {
+          "scenes": 154,
+          "detectionPct": 100,
+          "typingPct": 100
+        },
+        "6": {
+          "scenes": 154,
+          "detectionPct": 100,
+          "typingPct": 100
+        },
+        "10": {
+          "scenes": 154,
+          "detectionPct": 100,
+          "typingPct": 100
+        },
+        "15": {
+          "scenes": 153,
+          "detectionPct": 96.08,
+          "typingPct": 80.39
+        },
+        "25": {
+          "scenes": 153,
+          "detectionPct": 64.71,
+          "typingPct": 31.37
+        }
+      }
+    },
+    "mesh": {
+      "scenes": 729,
+      "emptyScenes": 160,
+      "falseConfirmations": 0,
+      "occupiedScenes": 569,
+      "confirmationPct": 94.02,
+      "meanReliableRewardMultiplier": 1.25,
+      "singlePhoneRadiusM": [
+        4,
+        12
+      ],
+      "meshRadiusM": [
+        20,
+        40
+      ]
+    }
+  },
+  "referenceTargets": {
+    "fusion": {
+      "blePerCrossingAccuracyPct": 57.7,
+      "wifi5PerCrossingAccuracyPct": 25.7,
+      "wifi24PerCrossingAccuracyPct": 16.1
+    },
+    "epoch": {
+      "movementDetectionPctAt2m": 100,
+      "movementDetectionPctAt4To8m": [
+        75,
+        88
+      ],
+      "stableRuleFalsePositivePct": 0,
+      "naiveRuleFalsePositivePct": [
+        25,
+        62
+      ]
+    },
+    "ranging": {
+      "validationScenes": 288,
+      "suppressedIllusionM": [
+        14,
+        23
+      ],
+      "rangeGateDbm": -75,
+      "noiseFloorDbm": -90
+    },
+    "transit": {
+      "detectionPctAt3To10m": 100,
+      "typingPctAt3To10m": 100,
+      "detectionPctAt15m": 94
+    },
+    "mesh": {
+      "falseConfirmationsIn160EmptyScenes": 0,
+      "singlePhoneRadiusM": [
+        4,
+        12
+      ],
+      "meshRadiusM": [
+        20,
+        40
+      ]
+    }
+  },
+  "interpretation": {
+    "modelBased": true,
+    "fieldCaptureIncluded": false,
+    "note": "Results reproduce the published model configuration. Differences from reference targets are informative and must not be hidden by hard-coding outputs."
+  }
+}

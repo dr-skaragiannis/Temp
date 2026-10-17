@@ -1,0 +1,650 @@
+{
+  "leg": "B2-idle-sensing-20261006-011458",
+  "battery_source": "battery-B2-idle-sensing.csv",
+  "duration_min": 22.39,
+  "soc": {
+    "soc_pct_per_h": 0.0,
+    "span_h": 0.3491,
+    "soc_delta_pct": 0.0,
+    "soc_steps_observed": 0,
+    "quantisation_pct_per_h_per_step": 2.864,
+    "minutes_needed_for_1pp_resolution": null,
+    "n_points": 32,
+    "resolution_note": "below the quantisation floor - extend the leg"
+  },
+  "current": {
+    "mA_discharge": 82.69,
+    "mA_iqr": [
+      19.0,
+      82.0
+    ],
+    "mAh_total": 30.857,
+    "n": 29
+  },
+  "states": {
+    "n_total": 60,
+    "n_screen_on": 34,
+    "n_screen_off": 26,
+    "n_idle": 17,
+    "soc_pct_per_h_screen_on": 0.0,
+    "soc_pct_per_h_screen_off": 0.0,
+    "soc_pct_per_h_idle": 0.0,
+    "temp_c_mean": 32.59,
+    "temp_c_range": [
+      28.1,
+      34.0
+    ]
+  },
+  "cadence": {
+    "windows": 10,
+    "span_s": 1382.5,
+    "totals": {
+      "ble_scan_starts": 45,
+      "ble_results": 263,
+      "ble_links": 69,
+      "wifi_polls": 17,
+      "wifi_polls_fresh": 6,
+      "wifi_startscan_tried": 17,
+      "wifi_startscan_accepted": 4,
+      "epochs_attempted": 17,
+      "epochs_completed": 17
+    },
+    "per_hour": {
+      "ble_scan_starts": 117.18,
+      "ble_results": 684.85,
+      "ble_links": 179.67,
+      "wifi_polls": 44.27,
+      "wifi_polls_fresh": 15.62,
+      "wifi_startscan_tried": 44.27,
+      "wifi_startscan_accepted": 10.42,
+      "epochs_attempted": 44.27,
+      "epochs_completed": 44.27
+    },
+    "starts_requested": 45,
+    "results_delivered": 263,
+    "delivered_per_start": 5.844,
+    "wifi_startscan_accepted_ratio": 0.2353,
+    "epoch_completion_ratio": 1.0,
+    "screen_on_starts_per_window": 4.167,
+    "screen_off_starts_per_window": 5.0,
+    "results_per_start_screen_on": 9.2,
+    "results_per_start_screen_off": 1.65,
+    "results_per_start_idle": 0.765,
+    "idle_windows": 3,
+    "source": "cadence-B2-idle-sensing.csv"
+  },
+  "storage": {
+    "source": "storage-B2-idle-sensing.csv",
+    "n_rows": 5,
+    "bytes_final": {
+      "files_bytes": 0,
+      "cache_bytes": 0,
+      "nobackup_bytes": 0,
+      "log_bytes_total": 0
+    },
+    "log_files_final": 0,
+    "bytes_growth": 0,
+    "bytes_growth_per_hour": 0.0,
+    "max_log_bytes": 0,
+    "traffic": {
+      "mobile_rx_delta": 0,
+      "mobile_tx_delta": 0,
+      "uid_rx_delta": 0,
+      "uid_tx_delta": 0
+    },
+    "mobile_bytes_total": 0,
+    "uid_bytes_total": 0
+  },
+  "events": {
+    "events": {
+      "epoch_completed": 20,
+      "epoch_attempted": 19,
+      "screen_off": 4,
+      "screen_on": 4
+    },
+    "source": "events-B2-idle-sensing.csv",
+    "epoch_gap_s": {
+      "median": 8.2,
+      "p95": 360.2,
+      "max": 427.8,
+      "n_gaps": 18,
+      "missed_epochs_gt_2x_nominal": 5,
+      "nominal_s": 15.0
+    }
+  },
+  "batterystats": {
+    "estimated_mah_tree": {
+      "screen": 0.0269,
+      "cpu": 3.9e-05,
+      "sensors": 8e-06,
+      "wifi": 0.00262,
+      "wakelock": 1e-06,
+      "uid 1000": 3.18,
+      "uid u0a357": 1.18,
+      "uid 0": 1.17,
+      "uid u0a492": 0.345,
+      "uid 2000": 0.3,
+      "uid u0a228": 0.234,
+      "uid u0a197": 0.128,
+      "uid u0a208": 0.127,
+      "uid u0a485": 0.124,
+      "uid 1001": 0.121,
+      "uid u0a430": 0.115,
+      "uid u0a422": 0.108,
+      "uid 1002": 0.092,
+      "uid u0a388": 0.0864,
+      "uid 1036": 0.0769,
+      "uid u0a233": 0.0642,
+      "uid u0a328": 0.0569,
+      "uid u0a260": 0.055,
+      "uid 1066": 0.0536,
+      "uid u0a237": 0.0426,
+      "uid u0a226": 0.0386,
+      "uid u0a324": 0.0385,
+      "uid 1047": 0.0318,
+      "uid u0a289": 0.0301,
+      "uid 1041": 0.03,
+      "uid 1073": 0.0228,
+      "uid 1017": 0.0226,
+      "uid u0a278": 0.0195,
+      "uid 1010": 0.0185,
+      "uid u0a263": 0.0177,
+      "uid 1021": 0.0156,
+      "uid 1069": 0.0147,
+      "uid u0a300": 0.0142,
+      "uid u0a413": 0.0141,
+      "uid 1013": 0.0136,
+      "uid u0a188": 0.012,
+      "uid 1046": 0.00912,
+      "uid u0a257": 0.00839,
+      "uid u0a225": 0.00816,
+      "uid u0a322": 0.00746,
+      "uid u0a447": 0.0071,
+      "uid u0a152": 0.00609,
+      "uid u0a369": 0.00582,
+      "uid 1020": 0.00545,
+      "uid u0a199": 0.00496,
+      "uid u0a331": 0.00495,
+      "uid u0a310": 0.0044,
+      "uid u0a301": 0.00421,
+      "uid u0a137": 0.00399,
+      "uid u0a335": 0.00346,
+      "uid u0a347": 0.00314,
+      "uid u0a372": 0.00297,
+      "uid u0a527": 0.00289,
+      "uid u0a240": 0.00283,
+      "uid u0a292": 0.00265,
+      "uid u0a142": 0.00252,
+      "uid u0a254": 0.00231,
+      "uid u0a408": 0.0023,
+      "uid 1027": 0.00193,
+      "uid u0a425": 0.00186,
+      "uid u0a343": 0.00184,
+      "uid u0a330": 0.00167,
+      "uid u0a326": 0.00163,
+      "uid 9999": 0.00162,
+      "uid 5101": 0.00157,
+      "uid u0a374": 0.00134,
+      "uid u0a209": 0.00132,
+      "uid u0a235": 0.00127,
+      "uid u0a187": 0.00118,
+      "uid u0a232": 0.00111,
+      "uid u0a266": 0.00106,
+      "uid u0a304": 0.00103,
+      "uid u0a185": 0.00099,
+      "uid u0a314": 0.000958,
+      "uid u0a355": 0.000955,
+      "uid u0a151": 0.000888,
+      "uid u0a272": 0.000868,
+      "uid 1068": 0.000855,
+      "uid u0a224": 0.000851,
+      "uid u0a283": 0.000845,
+      "uid 1053": 0.000843,
+      "uid u0a307": 0.000799,
+      "uid u0a423": 0.00078,
+      "uid u0a279": 0.000746,
+      "uid u0a442": 0.000746,
+      "uid u0a136": 0.000745,
+      "uid 1092": 0.000632,
+      "uid u0a262": 0.000555,
+      "uid 1007": 0.000532,
+      "uid 1040": 0.000471,
+      "uid u0a252": 0.000471,
+      "uid u0a360": 0.000432,
+      "uid u0a206": 0.000382,
+      "uid u0a145": 0.000381,
+      "uid u0a285": 0.000341,
+      "uid u0a150": 0.000208,
+      "uid u0a327": 0.000208,
+      "uid 1058": 0.000173,
+      "uid 1072": 0.000173,
+      "uid u0a207": 0.000173,
+      "uid 1067": 0.000138,
+      "uid u0a259": 3.4e-05,
+      "uid 1019": 1.7e-05
+    },
+    "uid_fg_bg_mah": {
+      "uid 1000": {
+        "fg_mah": null,
+        "bg_mah": 3.18
+      },
+      "uid u0a357": {
+        "fg_mah": 0.235,
+        "bg_mah": 0.0545
+      },
+      "uid 0": {
+        "fg_mah": null,
+        "bg_mah": 1.17
+      },
+      "uid u0a492": {
+        "fg_mah": 0.158,
+        "bg_mah": 0.121
+      },
+      "uid 2000": {
+        "fg_mah": null,
+        "bg_mah": 0.3
+      },
+      "uid u0a228": {
+        "fg_mah": null,
+        "bg_mah": 0.00309
+      },
+      "uid u0a197": {
+        "fg_mah": null,
+        "bg_mah": 0.0137
+      },
+      "uid u0a208": {
+        "fg_mah": null,
+        "bg_mah": 0.127
+      },
+      "uid u0a485": {
+        "fg_mah": null,
+        "bg_mah": 0.124
+      },
+      "uid 1001": {
+        "fg_mah": null,
+        "bg_mah": 0.121
+      },
+      "uid u0a430": {
+        "fg_mah": null,
+        "bg_mah": 0.109
+      },
+      "uid u0a422": {
+        "fg_mah": null,
+        "bg_mah": 0.0553
+      },
+      "uid 1002": {
+        "fg_mah": null,
+        "bg_mah": 0.092
+      },
+      "uid u0a388": {
+        "fg_mah": null,
+        "bg_mah": 0.00437
+      },
+      "uid 1036": {
+        "fg_mah": null,
+        "bg_mah": 0.0769
+      },
+      "uid u0a233": {
+        "fg_mah": null,
+        "bg_mah": 0.0642
+      },
+      "uid u0a328": {
+        "fg_mah": null,
+        "bg_mah": 0.0569
+      },
+      "uid u0a260": {
+        "fg_mah": null,
+        "bg_mah": 0.055
+      },
+      "uid 1066": {
+        "fg_mah": null,
+        "bg_mah": 0.0536
+      },
+      "uid u0a237": {
+        "fg_mah": 5.9e-05,
+        "bg_mah": 0.0426
+      },
+      "uid u0a226": {
+        "fg_mah": null,
+        "bg_mah": 0.0386
+      },
+      "uid u0a324": {
+        "fg_mah": 0.000838,
+        "bg_mah": null
+      },
+      "uid 1047": {
+        "fg_mah": null,
+        "bg_mah": 0.0318
+      },
+      "uid u0a289": {
+        "fg_mah": 0.0277,
+        "bg_mah": 0.000311
+      },
+      "uid 1041": {
+        "fg_mah": null,
+        "bg_mah": 0.03
+      },
+      "uid 1073": {
+        "fg_mah": null,
+        "bg_mah": 0.0228
+      },
+      "uid 1017": {
+        "fg_mah": null,
+        "bg_mah": 0.0226
+      },
+      "uid u0a278": {
+        "fg_mah": null,
+        "bg_mah": 0.0195
+      },
+      "uid 1010": {
+        "fg_mah": null,
+        "bg_mah": 0.0185
+      },
+      "uid u0a263": {
+        "fg_mah": null,
+        "bg_mah": 9.9e-05
+      },
+      "uid 1021": {
+        "fg_mah": null,
+        "bg_mah": 0.0156
+      },
+      "uid 1069": {
+        "fg_mah": null,
+        "bg_mah": 0.0147
+      },
+      "uid u0a300": {
+        "fg_mah": 1.7e-05,
+        "bg_mah": 0.000121
+      },
+      "uid u0a413": {
+        "fg_mah": null,
+        "bg_mah": 0.0134
+      },
+      "uid 1013": {
+        "fg_mah": null,
+        "bg_mah": 0.0136
+      },
+      "uid u0a188": {
+        "fg_mah": null,
+        "bg_mah": 0.012
+      },
+      "uid 1046": {
+        "fg_mah": null,
+        "bg_mah": 0.00912
+      },
+      "uid u0a257": {
+        "fg_mah": null,
+        "bg_mah": 3.9e-05
+      },
+      "uid u0a225": {
+        "fg_mah": 0.00477,
+        "bg_mah": 0.00337
+      },
+      "uid u0a322": {
+        "fg_mah": null,
+        "bg_mah": 0.00746
+      },
+      "uid u0a447": {
+        "fg_mah": null,
+        "bg_mah": 0.00664
+      },
+      "uid u0a152": {
+        "fg_mah": null,
+        "bg_mah": 0.00609
+      },
+      "uid u0a369": {
+        "fg_mah": null,
+        "bg_mah": 0.00582
+      },
+      "uid 1020": {
+        "fg_mah": null,
+        "bg_mah": 0.00545
+      },
+      "uid u0a199": {
+        "fg_mah": null,
+        "bg_mah": 0.00496
+      },
+      "uid u0a331": {
+        "fg_mah": null,
+        "bg_mah": 0.000381
+      },
+      "uid u0a310": {
+        "fg_mah": 1.9e-05,
+        "bg_mah": 0.00438
+      },
+      "uid u0a301": {
+        "fg_mah": null,
+        "bg_mah": 6.8e-05
+      },
+      "uid u0a137": {
+        "fg_mah": 0.0,
+        "bg_mah": 0.00299
+      },
+      "uid u0a335": {
+        "fg_mah": null,
+        "bg_mah": 0.00346
+      },
+      "uid u0a347": {
+        "fg_mah": null,
+        "bg_mah": 5.1e-05
+      },
+      "uid u0a372": {
+        "fg_mah": 0.000416,
+        "bg_mah": 1.7e-05
+      },
+      "uid u0a527": {
+        "fg_mah": null,
+        "bg_mah": 0.00289
+      },
+      "uid u0a240": {
+        "fg_mah": null,
+        "bg_mah": 0.00283
+      },
+      "uid u0a292": {
+        "fg_mah": null,
+        "bg_mah": 0.00257
+      },
+      "uid u0a142": {
+        "fg_mah": null,
+        "bg_mah": 0.0019
+      },
+      "uid u0a254": {
+        "fg_mah": null,
+        "bg_mah": 0.00231
+      },
+      "uid u0a408": {
+        "fg_mah": 0.000413,
+        "bg_mah": 5.1e-05
+      },
+      "uid 1027": {
+        "fg_mah": null,
+        "bg_mah": 0.00193
+      },
+      "uid u0a425": {
+        "fg_mah": null,
+        "bg_mah": 0.00186
+      },
+      "uid u0a343": {
+        "fg_mah": null,
+        "bg_mah": 0.00184
+      },
+      "uid u0a330": {
+        "fg_mah": 0.00153,
+        "bg_mah": 3.4e-05
+      },
+      "uid u0a326": {
+        "fg_mah": 0.0,
+        "bg_mah": 0.00163
+      },
+      "uid 9999": {
+        "fg_mah": null,
+        "bg_mah": 0.00162
+      },
+      "uid 5101": {
+        "fg_mah": null,
+        "bg_mah": 0.00157
+      },
+      "uid u0a374": {
+        "fg_mah": null,
+        "bg_mah": 0.00134
+      },
+      "uid u0a209": {
+        "fg_mah": null,
+        "bg_mah": 0.00132
+      },
+      "uid u0a235": {
+        "fg_mah": null,
+        "bg_mah": 0.000766
+      },
+      "uid u0a187": {
+        "fg_mah": null,
+        "bg_mah": 0.000434
+      },
+      "uid u0a232": {
+        "fg_mah": null,
+        "bg_mah": 0.00111
+      },
+      "uid u0a266": {
+        "fg_mah": null,
+        "bg_mah": 0.00106
+      },
+      "uid u0a304": {
+        "fg_mah": null,
+        "bg_mah": 0.00103
+      },
+      "uid u0a185": {
+        "fg_mah": null,
+        "bg_mah": 0.00099
+      },
+      "uid u0a314": {
+        "fg_mah": null,
+        "bg_mah": 0.000958
+      },
+      "uid u0a355": {
+        "fg_mah": null,
+        "bg_mah": 0.000955
+      },
+      "uid u0a151": {
+        "fg_mah": null,
+        "bg_mah": 0.000888
+      },
+      "uid u0a272": {
+        "fg_mah": null,
+        "bg_mah": 0.000868
+      },
+      "uid 1068": {
+        "fg_mah": null,
+        "bg_mah": 0.000855
+      },
+      "uid u0a224": {
+        "fg_mah": null,
+        "bg_mah": 0.000851
+      },
+      "uid u0a283": {
+        "fg_mah": null,
+        "bg_mah": 0.000845
+      },
+      "uid 1053": {
+        "fg_mah": null,
+        "bg_mah": 0.000843
+      },
+      "uid u0a307": {
+        "fg_mah": null,
+        "bg_mah": 0.000799
+      },
+      "uid u0a423": {
+        "fg_mah": null,
+        "bg_mah": 0.00078
+      },
+      "uid u0a279": {
+        "fg_mah": null,
+        "bg_mah": 0.000746
+      },
+      "uid u0a442": {
+        "fg_mah": null,
+        "bg_mah": 0.000746
+      },
+      "uid u0a136": {
+        "fg_mah": null,
+        "bg_mah": 0.000745
+      },
+      "uid 1092": {
+        "fg_mah": null,
+        "bg_mah": 0.000632
+      },
+      "uid u0a262": {
+        "fg_mah": null,
+        "bg_mah": 0.000555
+      },
+      "uid 1007": {
+        "fg_mah": null,
+        "bg_mah": 0.000532
+      },
+      "uid 1040": {
+        "fg_mah": null,
+        "bg_mah": 0.000471
+      },
+      "uid u0a252": {
+        "fg_mah": null,
+        "bg_mah": 6.9e-05
+      },
+      "uid u0a360": {
+        "fg_mah": null,
+        "bg_mah": 0.000432
+      },
+      "uid u0a206": {
+        "fg_mah": null,
+        "bg_mah": 0.000382
+      },
+      "uid u0a145": {
+        "fg_mah": null,
+        "bg_mah": 0.000381
+      },
+      "uid u0a285": {
+        "fg_mah": null,
+        "bg_mah": 0.000341
+      },
+      "uid u0a150": {
+        "fg_mah": null,
+        "bg_mah": 0.000208
+      },
+      "uid u0a327": {
+        "fg_mah": null,
+        "bg_mah": 0.000208
+      },
+      "uid 1058": {
+        "fg_mah": null,
+        "bg_mah": 0.000173
+      },
+      "uid 1072": {
+        "fg_mah": null,
+        "bg_mah": 0.000173
+      },
+      "uid u0a207": {
+        "fg_mah": null,
+        "bg_mah": 0.000121
+      },
+      "uid 1067": {
+        "fg_mah": null,
+        "bg_mah": 0.000138
+      },
+      "uid u0a259": {
+        "fg_mah": null,
+        "bg_mah": 3.4e-05
+      },
+      "uid 1019": {
+        "fg_mah": null,
+        "bg_mah": 1.7e-05
+      }
+    },
+    "estimated_mah_for_uid": {
+      "uid u0a492": 0.345
+    },
+    "wake_lock_seconds": null,
+    "time_on_battery_raw": "21m 15s 19ms"
+  },
+  "netstats": {
+    "note": "netstats lines not recognised; use the app-side TrafficStats instead"
+  },
+  "gaps": []
+}

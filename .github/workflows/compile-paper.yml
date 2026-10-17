@@ -40,32 +40,51 @@ jobs:
             grep -o "Output written on [^ ]* ([0-9]* page" Version-with-figures/MeshCrowd_version_with_figures.log | tail -1 || true
           } > build-report.txt
           cat build-report.txt
-      - name: Commit compiled PDF and report back to branch
+      - name: Try committing compiled PDF back to branch
         env:
           BRANCH: arena/1ac83396-temp
         run: |
-          set -e
           api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
-          put_file() {
-            local path="$1" file="$2" msg="$3"
-            local sha=""
-            sha=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "${api}/contents/${path}?ref=${BRANCH}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || true)
-            local payload
-            if [ -n "$sha" ] && [ "$sha" != "None" ]; then
-              payload=$(python3 -c "import json,base64; print(json.dumps({'message':'$msg','branch':'${BRANCH}','content':base64.b64encode(open('$file','rb').read()).decode(),'sha':'$sha'}))")
-            else
-              payload=$(python3 -c "import json,base64; print(json.dumps({'message':'$msg','branch':'${BRANCH}','content':base64.b64encode(open('$file','rb').read()).decode()}))")
-            fi
-            curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "${api}/contents/${path}" --data "$payload" | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if 'content' in d else d)"
-          }
-          put_file "Version-with-figures/MeshCrowd_version_with_figures.pdf" "Version-with-figures/MeshCrowd_version_with_figures.pdf" "CI: compiled Version-with-figures PDF ($PAGES_VWF pages) [skip ci]"
-          put_file "Version-with-figures/build-report.txt" "build-report.txt" "CI: build report ($PAGES_VWF pages) [skip ci]"
-          put_file "Version-with-figures/MeshCrowd_version_with_figures.log" "Version-with-figures/MeshCrowd_version_with_figures.log" "CI: compile log [skip ci]"
+          {
+            echo "== commit-back attempts =="
+            for spec in "Version-with-figures/MeshCrowd_version_with_figures.pdf|Version-with-figures/MeshCrowd_version_with_figures.pdf|CI-compiled-PDF" \
+                        "Version-with-figures/build-report.txt|build-report.txt|CI-build-report"; do
+              path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; msg="${rest##*|}"
+              sha=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                    "${api}/contents/${path}?ref=${BRANCH}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || true)
+              if [ -n "$sha" ] && [ "$sha" != "None" ]; then
+                resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                  "${api}/contents/${path}" \
+                  --data "$(python3 -c "import json,base64; print(json.dumps({'message':'${msg} [skip ci]','branch':'${BRANCH}','content':base64.b64encode(open('${file}','rb').read()).decode(),'sha':'${sha}'}))")")
+              else
+                resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                  "${api}/contents/${path}" \
+                  --data "$(python3 -c "import json,base64; print(json.dumps({'message':'${msg} [skip ci]','branch':'${BRANCH}','content':base64.b64encode(open('${file}','rb').read()).decode()}))")")
+              fi
+              echo "PUT ${path}: $(echo "$resp" | head -c 300)"
+            done
+          } > commit-back.txt 2>&1 || true
+          cat commit-back.txt
+      - name: File build-report issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### Build report"
+            echo
+            cat build-report.txt
+            echo
+            echo "### Commit-back output"
+            echo
+            cat commit-back.txt 2>/dev/null || echo "(none)"
+          } > issue-body.md
+          gh api "repos/${GITHUB_REPOSITORY}/issues" \
+            -f title="Build report: Version-with-figures (${PAGES_VWF} pages)" \
+            -F body=@issue-body.md \
+            -f labels="ci-build" > issue-url.txt || true
+          cat issue-url.txt || true
       - name: Upload Version-with-figures PDF
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: meshcrowd-version-with-figures-pdf

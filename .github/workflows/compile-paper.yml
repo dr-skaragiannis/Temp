@@ -23,32 +23,50 @@ jobs:
           pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
           pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
           echo "PAGES_VWF=$(pdfinfo MeshCrowd_version_with_figures.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
-          grep -c "Overfull" MeshCrowd_version_with_figures.log || true
+          echo "OVERFULL_VWF=$(grep -c 'Overfull' MeshCrowd_version_with_figures.log || true)" >> "$GITHUB_ENV"
       - name: Compile 17-Oct camera-ready (reference)
         run: |
           cd paper-17-Oct
           pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
           pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
           echo "PAGES_CR=$(pdfinfo MeshCrowd_camera_ready.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
-      - name: Report page counts
+      - name: Write build report
         run: |
-          echo "Version-with-figures pages: $PAGES_VWF"
-          echo "17-Oct camera-ready pages: $PAGES_CR"
+          {
+            echo "Version-with-figures pages: $PAGES_VWF"
+            echo "Version-with-figures overfull boxes: $OVERFULL_VWF"
+            echo "17-Oct camera-ready pages: $PAGES_CR"
+            grep -E "Overfull|undefined|Undefined" Version-with-figures/MeshCrowd_version_with_figures.log | head -20 || true
+            grep -o "Output written on [^ ]* ([0-9]* page" Version-with-figures/MeshCrowd_version_with_figures.log | tail -1 || true
+          } > build-report.txt
+          cat build-report.txt
+      - name: Commit compiled PDF and report back to branch
+        env:
+          BRANCH: arena/1ac83396-temp
+        run: |
+          set -e
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          put_file() {
+            local path="$1" file="$2" msg="$3"
+            local sha=""
+            sha=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${api}/contents/${path}?ref=${BRANCH}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || true)
+            local payload
+            if [ -n "$sha" ] && [ "$sha" != "None" ]; then
+              payload=$(python3 -c "import json,base64; print(json.dumps({'message':'$msg','branch':'${BRANCH}','content':base64.b64encode(open('$file','rb').read()).decode(),'sha':'$sha'}))")
+            else
+              payload=$(python3 -c "import json,base64; print(json.dumps({'message':'$msg','branch':'${BRANCH}','content':base64.b64encode(open('$file','rb').read()).decode()}))")
+            fi
+            curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${api}/contents/${path}" --data "$payload" | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if 'content' in d else d)"
+          }
+          put_file "Version-with-figures/MeshCrowd_version_with_figures.pdf" "Version-with-figures/MeshCrowd_version_with_figures.pdf" "CI: compiled Version-with-figures PDF ($PAGES_VWF pages) [skip ci]"
+          put_file "Version-with-figures/build-report.txt" "build-report.txt" "CI: build report ($PAGES_VWF pages) [skip ci]"
+          put_file "Version-with-figures/MeshCrowd_version_with_figures.log" "Version-with-figures/MeshCrowd_version_with_figures.log" "CI: compile log [skip ci]"
       - name: Upload Version-with-figures PDF
         uses: actions/upload-artifact@v4
         with:
           name: meshcrowd-version-with-figures-pdf
           path: Version-with-figures/MeshCrowd_version_with_figures.pdf
-      - name: Upload compile log
-        uses: actions/upload-artifact@v4
-        with:
-          name: meshcrowd-vwf-log
-          path: Version-with-figures/MeshCrowd_version_with_figures.log
-      - name: Commit compiled PDF back to branch
-        run: |
-          git config user.name "Arena CI"
-          git config user.email "ci@arena.ai"
-          git add Version-with-figures/MeshCrowd_version_with_figures.pdf
-          git add Version-with-figures/MeshCrowd_version_with_figures.log
-          git commit -m "CI: compiled Version-with-figures PDF (${{ env.PAGES_VWF }} pages) [skip ci]" || echo "nothing to commit"
-          git push origin HEAD:arena/1ac83396-temp

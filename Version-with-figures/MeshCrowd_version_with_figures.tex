@@ -471,7 +471,7 @@ cycle is treated as a property of the measured platform, not compensated in
 post-processing. The phone is mounted on a lightweight tripod at 1.2\,m height
 at a flat, open car park bordered by a two-lane road (two-way traffic, 6\,m
 carriageway, 30\,km/h limit), with no walls or large metal structures within
-30\,m; the 10\,m radius preset is used throughout unless stated otherwise.
+30\,m; the 10\,m radius preset is used throughout.
 
 \subsection{Protocols and ground truth}
 Five field protocols (E1--E5) run from the in-app Experiments tab; each
@@ -652,7 +652,7 @@ transits/cell (two lanes); per-cell tallies were not preserved.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.80\columnwidth]{field_envelope.png}
+\includegraphics[width=0.78\columnwidth]{field_envelope.png}
 \caption{Field detection envelope (E1). (a)~Detection and classification probability
 versus tape-measured crossing distance ($n=60$/cell,
 Table~\ref{tab:det_distance}) with 95\,\% Wilson bands. (b)~Moving-vehicle
@@ -728,8 +728,8 @@ therefore the one the stricter denominator moves.
 \emph{Direction.} From two-zone entry order under the $\pm50$\,ms clock
 residual: 56/60 (93.3\,\%, CI $[84.1,\,97.4]$) at 3--10\,m and 14/17 (82.4\,\%,
 CI $[59.0,\,93.8]$) at 15\,m; 4 of 77 events (5.2\,\%) had $|\Delta t| < 1$\,s
-and are reported as undetermined (counted, no direction asserted), and reversal
-events are classified as undirected. Speed is $|v| = 2.355\,\sigma_c/\tau_e$,
+and are reported as undetermined (counted, no direction asserted);
+reversals are classified as undirected. Speed is $|v| = 2.355\,\sigma_c/\tau_e$,
 with $2.355 = 2\sqrt{2\ln 2}$ the Gaussian full-width-at-half-maximum factor,
 $\sigma_c$ the class lateral profile of Section~II-C (1.15\,m for a vehicle),
 and $\tau_e$ the dip duration from the \texttt{DipDetector}; size and speed are
@@ -738,8 +738,8 @@ accompanies every displayed speed.
 
 \emph{False confirmations.} Zero of 160 empty-scene runs of the two-node
 configuration produced a false confirmation end-to-end (48{,}000\,s aggregate;
-rule-of-three 95\,\% upper bound 1.88\,\%, i.e., $\le 0.23$ per hour at
-95\,\% confidence)---a bound on the evaluated quiet controls of the barrier
+rule-of-three 95\,\% upper bound 1.88\,\%, i.e., $\le 0.23$ per hour)---a
+bound on the evaluated quiet controls of the barrier
 configuration, distinct from the E5 single-device silent sessions.
 Bidirectional traffic and close-following targets were included in G4.
 
@@ -840,7 +840,7 @@ gate, which is why vehicle detection trails pedestrian detection at 2--8\,m
 despite the wider vehicle profile; at 16\,m that profile dominates instead and
 the ordering reverses (Table~\ref{tab:vehicle_det}). Both are properties of the
 deployed platform and traffic, not of the radio model, and both argue for
-distance-conditioned rates rather than a single accuracy figure.
+distance-conditioned rates over a single accuracy figure.
 
 The mesh turns a bounded single-device sensor into a collective
 one---cross-node agreement confirms events where single-link evidence is
@@ -879,16 +879,14 @@ sustains classification at 80\,\% or better inside 6\,m, detects moving vehicles
 to 16\,m at reduced rate, holds a zero-BLE-false-positive budget over 30\,h of
 silent control, and refuses range estimates where the measured signal cannot
 support them. Instrumented background legs show the duty cycle costs 82.7\,mA
-mean discharge current with the screen off, that observed link density falls
-roughly ninefold when the handset is unattended, and that no mobile traffic is
+mean discharge current with the screen off, observed link density falls
+roughly ninefold when the handset is unattended, and no mobile traffic is
 attributable to the sensing service in any measured condition. Future work targets the distributed multi-device campaign this campaign
 excludes (mesh confirmation and false-confirmation rates across node densities,
 gamification dynamics under sustained participation), diverse environments and
 device heterogeneity, the remaining instrumentation legs and the participant
 usability study, and device- and site-transfer of the frozen classifier; mesh
-resilience against spoofed or adversarial reports also remains untested, and
-future work will extend the agreement-based rewards toward reputation- and
-quality-aware mechanisms robust under noisy, spoofed, or coordinated behaviour.
+resilience against spoofed or adversarial reports also remains untested.
 
 %---------------------------------------------------------------------------
 % Data availability

@@ -71,10 +71,10 @@ nothing at all, but prior approaches often rely on radar arrays, synchronized
 infrastructure, or cameras, raising cost and privacy concerns. This paper
 presents MeshCrowd, a zero-infrastructure framework that turns the Bluetooth
 Low Energy and dual-band Wi-Fi radios of commodity smartphones into a passive
-radio-frequency sensing platform. MeshCrowd fuses signal attenuation changes
-across multiple carrier bands to detect non-transmitting pedestrians and
-vehicles without target cooperation. For robustness it compares periodic scan
-epochs with stable, median-filtered baselines, applies an explicit noise-floor
+radio-frequency sensing platform, fusing signal attenuation changes across
+multiple carrier bands to detect non-transmitting pedestrians and vehicles
+without target cooperation. For robustness it compares periodic scan epochs
+with stable, median-filtered baselines, applies an explicit noise-floor
 threshold, and reports radial range bands instead of unsupported point
 distances. Multiple smartphones can form a cooperative sensing mesh whose
 cross-node agreement extends coverage, and a gamification layer scores
@@ -129,12 +129,12 @@ dedicated sensing hardware is costly and camera-based alternatives raise
 privacy concerns~\cite{khan2023,zhou2020}; smartphone-based sensing deploys
 at near-zero marginal cost, and when several phones cooperate---a
 \emph{MeshCrowd mesh}---the geometric diversity of their rays can raise both
-accuracy and reach~\cite{li2024}. Such cooperation must be engineered, since
+accuracy and reach~\cite{li2024}. Cooperation must be engineered, since
 participants contribute when mechanisms are transparent, rewarded, and
 socially engaging~\cite{zhang2022,wang2018}; gamification is therefore
-treated as incentive infrastructure rather than decoration, at the cost of
-making the \emph{trustworthiness} of contributed measurements an explicit
-engineering concern.
+incentive infrastructure rather than decoration, at the cost of making the
+\emph{trustworthiness} of contributed measurements an explicit engineering
+concern.
 
 The gap addressed here is between what passive RF sensing achieves in the
 laboratory and what a single, unmodified smartphone held by an ordinary user
@@ -143,15 +143,14 @@ physics-limited: occlusion attenuation decays with distance while
 environmental fluctuation grows with range, so beyond some distance the event
 becomes statistically indistinguishable from noise, and a system that does not
 quantify this limit misleads its user. Second, RSSI range estimation is
-ill-conditioned---the log-distance model that converts decibels into metres
+ill-conditioned: the log-distance model that converts decibels into metres
 can be wrong by tens of metres on weak links~\cite{ramirez2021,milano2024}.
 Third, cooperative mode introduces an integrity problem: a device can report
 forged beacons or measurements, and the mesh mean---the very quantity
 gamified reliability rewards---becomes an attack
-surface~\cite{casar2022,antonioli2020}. Prior work frequently reports
-accuracy without stating the distance at which the signal-to-noise ratio
-supports it, conflates classification with detection, or assumes
-infrastructure (synchronized nodes, CSI-capable chipsets) that phones do
+surface~\cite{casar2022,antonioli2020}. Prior work often reports accuracy
+without stating the distance at which the signal-to-noise ratio supports it,
+conflates classification with detection, or assumes infrastructure phones do
 not have.
 
 This paper presents MeshCrowd, a native smartphone application that turns
@@ -168,18 +167,17 @@ network traffic---measured separately by instrumented legs
 (Sections~IV-D and~V-D).
 
 \subsection{Our Contribution}
-MeshCrowd makes the following contributions; the primary one is the
-design and implementation of a smartphone-based RF sensing framework that
-integrates multi-band signal analysis, cooperative sensing, transit
-counting, uncertainty-aware detection, and quality-aware gamification,
-validated in a physical deployment:
+MeshCrowd's primary contribution is the design and implementation of a
+smartphone-based RF sensing framework integrating multi-band signal analysis,
+cooperative sensing, transit counting, uncertainty-aware detection, and
+quality-aware gamification, validated in a physical deployment:
 
 \begin{itemize}
-\item A \textbf{multi-band fusion classifier} combining per-link attenuation
+\item A \textbf{multi-band fusion classifier} over per-link attenuation
 features (dip depth, duration, texture, variance, prominence, multi-link
-coherence) across BLE, Wi-Fi~2.4~GHz, and Wi-Fi~5~GHz to detect and
-distinguish pedestrians and vehicles, with per-band dip-depth
-characteristics accompanying the range results (Fig.~\ref{fig:field_det}(b)).
+coherence) across BLE, Wi-Fi~2.4 and 5~GHz, with per-band dip-depth
+characteristics accompanying the range results
+(Fig.~\ref{fig:field_det}(b)).
 
 \item A \textbf{scan-epoch change-detection and gated-ranging mechanism}: a
 log-distance estimate is produced only when the received signal clears a
@@ -197,10 +195,10 @@ evidence, mesh-confirmed events, and proximity to consensus.
 
 \item A \textbf{complete field validation} of the single-device stack
 (detection, classification, vehicle detection, gated ranging, epoch change
-detection, silent-control false positives, and calibration of the displayed
-accuracy estimate, each versus tape-measured distance with confidence
-intervals), plus an \textbf{instrumented background-operation study} of
-energy, scan availability, storage, and traffic.
+detection, silent-control false positives, calibration of the displayed
+accuracy, each versus tape-measured distance with confidence intervals),
+plus an \textbf{instrumented background-operation study} of energy, scan
+availability, storage, and traffic.
 \end{itemize}
 
 Representative \textbf{applications} include two-node pedestrian and vehicle
@@ -214,13 +212,13 @@ reconstructs an attenuation field from a node network~\cite{wilson2010};
 later work removes training data, recovers attenuation generatively, and
 extends to multi-target and outdoor scenes~\cite{alippi2016,wu2024}, with
 reconfigurable intelligent surfaces roughly halving node
-density~\cite{li2024}. These systems report reconstruction accuracy under
-known node geometry and controlled conditions~\cite{wilson2011}---an upper
-bound that phone-held sensing, lacking that geometry, cannot assume. CSI-based
-activity recognition and multi-transceiver datasets widen the set of
-recognizable actions~\cite{wang2015har,wong2024}, and CSI/RSSI fusion from a
-single dual-band AP reaches sub-meter indoor localization~\cite{sanchez2020};
-these assume CSI extraction or controlled hardware and target \emph{deliberately
+density~\cite{li2024}. They report accuracy under known node geometry and
+controlled conditions~\cite{wilson2011}---an upper bound phone-held sensing,
+lacking that geometry, cannot assume. CSI-based activity recognition and
+multi-transceiver datasets widen the set of recognizable
+actions~\cite{wang2015har,wong2024}, and CSI/RSSI fusion from a single
+dual-band AP reaches sub-meter indoor localization~\cite{sanchez2020}; these
+assume CSI extraction or controlled hardware and target \emph{deliberately
 performed} activities, whereas MeshCrowd detects people passing by from
 link-level RSSI only.
 
@@ -266,7 +264,7 @@ estimates, and mesh records---the interface to the evaluation pipeline
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.62\columnwidth]{fig_modern_01_architecture.jpg}
+  \includegraphics[width=0.56\columnwidth]{fig_modern_01_architecture.jpg}
   \caption{Functional architecture of MeshCrowd. Heterogeneous BLE and
   Wi-Fi observations pass through per-link conditioning and multi-band
   inference into event, range, epoch, and mesh artifacts; the six dip
@@ -319,9 +317,7 @@ $\sigma \approx 1.15$\,m at 2.4~GHz. Equation~\eqref{eq:pathloss} makes
 explicit why detection is distance-limited: as closest-approach distance
 grows, the shadow term shrinks below the adaptive trigger floor while the
 scintillation term $X_\sigma$ does not, so beyond a band-dependent range a
-crossing is statistically indistinguishable from noise. The field campaign
-(Section~V) measures where each band crosses that boundary on a real
-handset.
+crossing is statistically indistinguishable from noise.
 
 \subsection{Classifier and Gate Parameters}
 The \texttt{EntityClassifier} is a fixed rule over the dip features rather than a
@@ -368,7 +364,7 @@ projections in these example sessions, not measured campaign quantities.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.78\columnwidth]{fig_modern_05_mesh.jpg}
+  \includegraphics[width=0.72\columnwidth]{fig_modern_05_mesh.jpg}
   \caption{The \emph{Mesh} tab: cooperating nodes confirm each other's
   crossings within the stated tolerances ($\pm5$\,s, classification bucket,
   $\pm1$ crossing or $\pm4$\,m), and the radius-comparison panel contrasts
@@ -381,7 +377,7 @@ projections in these example sessions, not measured campaign quantities.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.50\columnwidth]{fig_modern_07_club.jpg}
+  \includegraphics[width=0.46\columnwidth]{fig_modern_07_club.jpg}
   \caption{The \emph{Club} tab: mesh contribution, fused accuracy and crowd
   level, the XP scoring rule (people +10, vehicles +14, disturbances +2,
   mesh confirmation +15 and a $\times 2$ fusion bonus), and session
@@ -389,8 +385,8 @@ projections in these example sessions, not measured campaign quantities.
   \label{fig:club}
 \end{figure}
 
-The privacy posture is deliberately narrow: no camera or microphone is not
-the same as privacy preservation. It rests on data minimization: radio
+The privacy posture is deliberately narrow---no camera or microphone is not
+the same as privacy preservation---and rests on data minimization: radio
 measurements are reduced on device so that only derived artefacts persist
 (per-link deltas, a coarse geo-tag, the epoch verdict, not a raw RSSI stream),
 a mesh confirmation carries only a time bucket, class, and radial band with no
@@ -431,7 +427,7 @@ accuracy).
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.52\columnwidth]{fig_modern_03_sense.jpg}
+  \includegraphics[width=0.48\columnwidth]{fig_modern_03_sense.jpg}
   \caption{The \emph{Sense} dashboard: 33 passive links (BLE and dual-band
   Wi-Fi) within a 20\,m radius, live counters (People 67, Vehicles 66,
   Disturbances 165, RF Links 33), moving variance 11.45\,dB$^2$, jitter
@@ -455,21 +451,19 @@ Android throttles background BLE advertising scans\footnote{Android 15
 enforces \texttt{SCAN\_THROTTLE\_MAX\_SCAN\_COUNT} $=5$ per 30\,s for
 unprivileged apps; MeshCrowd runs as a foreground service with
 \texttt{never\_freeze} but remains subject to the BLE scan duty cycle.},
-MeshCrowd runs as a foreground service throughout the campaign, and the
-residual scan duty cycle is treated as a property of the measured platform,
-not compensated in post-processing. The phone is mounted on a lightweight
-tripod at 1.2\,m height at a flat, open car park bordered by a two-lane road
-(two-way traffic, 6\,m carriageway, 30\,km/h limit), with no walls or large
-metal structures within 30\,m; the 10\,m radius preset is used throughout
-unless stated otherwise.
+MeshCrowd runs as a foreground service throughout, and the residual scan duty
+cycle is treated as a property of the measured platform, not compensated in
+post-processing. The phone is mounted on a lightweight tripod at 1.2\,m height
+at a flat, open car park bordered by a two-lane road (two-way traffic, 6\,m
+carriageway, 30\,km/h limit), with no walls or large metal structures within
+30\,m; the 10\,m radius preset is used throughout unless stated otherwise.
 
 \subsection{Protocols and ground truth}
 Five field protocols (E1--E5) run from the in-app Experiments tab; each
 session stores its labelled timeline in the session notes field, and GPS track
 logs from a Garmin Forerunner~265 verify event times to $\pm1$\,s. Ground
-truth for E1--E4 is the observer tally reconciled with the session notes, with
-inter-observer discrepancies resolved against the GPS track before a session
-is admitted.
+truth for E1--E4 is the observer tally reconciled with the session notes,
+discrepancies resolved against the GPS track before a session is admitted.
 
 \textbf{E1 (detection range).} A helper makes twenty walking-speed crossings
 at each of seven tape-measured distances (2, 4, 6, 8, 12, 16, 22\,m), repeated
@@ -484,8 +478,8 @@ sessions with the engine off within 8\,m.
 
 \textbf{E3 (range validation).} A BLE beacon (Nordic nRF52840 DK,
 Tx\,=\,0\,dBm, 100\,ms interval) at 1, 2, 4, 8\,m for 2\,min each (12 links),
-plus placements at 12 and 16\,m on a second link set (4 links each) to
-exercise the noise-floor gate on weak baselines.
+plus 12 and 16\,m placements on a second link set (4 links each) to exercise
+the noise-floor gate on weak baselines.
 
 \textbf{E4 (scan epochs).} A scripted timeline (0--3\,min empty, 3--6\,min one
 person at 4\,m, 6--9\,min two persons at 6 and 8\,m, 9--12\,min empty),
@@ -520,18 +514,17 @@ before the campaign, with no field data used for tuning.
 
 \subsection{Instrumented background operation}
 \label{sec:background}
-The campaign measured sensing performance; the practical cost of running the
-duty cycle was measured separately, after the campaign, by an
-\emph{instrumented meter}: a purpose-built build reproducing the sensing duty
-cycle of the deployment application (one BLE scan and one Wi-Fi poll per epoch,
-as in the deployment build; the harness runs 15\,s epochs against the
-deployment build's 10\,s cycle---a difference that slightly understates the
-harness duty cycle and is flagged in Section~VI) but \emph{not} that
-application. It carries battery, scan-cadence, and storage probes; every
-derived quantity is parsed from raw \texttt{adb} captures retained with the
-release, and a 30-check regression suite pins the analysers. Three legs were
-recorded on a Motorola Edge 60 Pro (Android 16, 5{,}604\,mAh, battery saver
-off): \textbf{B2} sensing with the screen off and the device unattended;
+The campaign measured sensing performance; the practical cost of the duty
+cycle was measured separately, after the campaign, by an \emph{instrumented
+meter}: a purpose-built build reproducing the deployment application's duty
+cycle (one BLE scan and one Wi-Fi poll per epoch; the harness runs 15\,s
+epochs against the deployment build's 10\,s cycle, slightly understating the
+duty cycle---flagged in Section~VI) but \emph{not} that application. It
+carries battery, scan-cadence, and storage probes; every derived quantity is
+parsed from raw \texttt{adb} captures retained with the release, and a
+30-check regression suite pins the analysers. Three legs were recorded on a
+Motorola Edge 60 Pro (Android 16, 5{,}604\,mAh, battery saver off):
+\textbf{B2} sensing with the screen off and the device unattended;
 \textbf{B3} sensing with the operator dashboard visible at 40\,\% brightness;
 and \textbf{B5} under forced deep idle (\texttt{deviceidle force-idle}, Doze
 whitelist entry removed), which ran with the display on and is therefore
@@ -558,33 +551,32 @@ per-crossing detection and classification at each tape-measured distance.
 Detection is near-perfect inside 4\,m, falls below three-quarters at 8\,m, and
 drops to 50\,\% at 16\,m; classification tracks detection a few points below
 it, so a crossing detected at these ranges is usually also correctly
-classified. The envelope narrows beyond 12\,m, consistent with Android BLE
-scan throttling thinning the sample density exactly where the link margin is
-already thin (Section~VI). Table~\ref{tab:confusion} pools the labelled E2
-events while Table~\ref{tab:det_distance} conditions the same
-classification on distance: the error mass is missed claims concentrated at
-8--12\,m, where dip depth approaches the trigger floor; direct
-pedestrian--vehicle confusion is rare, arising where a slow vehicle's wider
-lateral profile ($\sigma = 1.15$\,m) partly overlaps the pedestrian jitter
-signature; and empty or parked controls produce no moving claims, parked
-sessions raising the sustained-signature advisory only after the 45\,s
-threshold. Per-band standalone rates are not reported because the campaign
-logged the fused output, though the per-link records in the session-log
-release permit that ablation. Vehicle detection (Table~\ref{tab:vehicle_det},
-Fig.~\ref{fig:field_det}(b)) follows the same decay but \emph{crosses} the
-pedestrian curve: it runs a few points below pedestrian detection at 2--8\,m,
-where road-speed transits (30--50\,km/h against $\sim$5\,km/h walking)
-compress dip duration toward the detector's minimum-duration gate---a speed
-dependence Eq.~\eqref{eq:pathloss} does not scale with entity class---and
-above it at 16\,m, where the wider vehicle shadow outweighs that compression.
-Finally, the gamified accuracy estimate the app displays is validated
-against realized performance: at the 10\,m preset it shows
-$\hat{a} = 86$\,\% for a single phone against 79.2\,\% realized (38 of 48
-crossings within 8\,m), a modest systematic overestimate (Bland--Altman
-difference $-6.8$\,pp, limits of agreement $[-18.3,\,4.7]$\,pp); it is
-conservative at 12--22\,m, where the displayed value drops faster than the
-realized rate, so the app never promises more range than the envelope
-supports.
+classified. The envelope narrows beyond 12\,m, consistent with scan throttling
+thinning sample density where the link margin is already thin (Section~VI).
+Table~\ref{tab:confusion} pools the labelled E2 events while
+Table~\ref{tab:det_distance} conditions the same classification on distance:
+the error mass is missed claims concentrated at 8--12\,m, where dip depth
+approaches the trigger floor; direct pedestrian--vehicle confusion is rare,
+arising where a slow vehicle's wider lateral profile ($\sigma = 1.15$\,m)
+partly overlaps the pedestrian jitter signature; and empty or parked controls
+produce no moving claims, parked sessions raising the sustained-signature
+advisory only after the 45\,s threshold. Per-band standalone rates are not
+reported because the campaign logged the fused output, though the per-link
+records in the session-log release permit that ablation. Vehicle detection
+(Table~\ref{tab:vehicle_det}, Fig.~\ref{fig:field_det}(b)) follows the same
+decay but \emph{crosses} the pedestrian curve: it runs a few points below
+pedestrian detection at 2--8\,m, where road-speed transits (30--50\,km/h
+against $\sim$5\,km/h walking) compress dip duration toward the detector's
+minimum-duration gate---a speed dependence Eq.~\eqref{eq:pathloss} does not
+scale with entity class---and above it at 16\,m, where the wider vehicle
+shadow outweighs that compression. Finally, the gamified accuracy estimate
+the app displays is validated against realized performance: at the 10\,m
+preset it shows $\hat{a} = 86$\,\% for a single phone against 79.2\,\%
+realized (38 of 48 crossings within 8\,m), a modest systematic overestimate
+(Bland--Altman difference $-6.8$\,pp, limits of agreement
+$[-18.3,\,4.7]$\,pp); it is conservative at 12--22\,m, where the displayed
+value drops faster than the realized rate, so the app never promises more
+range than the envelope supports.
 
 \begin{table}[htbp]
 \centering
@@ -646,7 +638,7 @@ transits/cell (two lanes); per-cell tallies were not preserved.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.88\columnwidth]{field_envelope.png}
+\includegraphics[width=0.84\columnwidth]{field_envelope.png}
 \caption{Field detection envelope (E1). (a)~Detection and classification probability
 versus tape-measured crossing distance ($n=60$/cell,
 Table~\ref{tab:det_distance}) with 95\,\% Wilson bands. (b)~Moving-vehicle
@@ -667,8 +659,8 @@ links, the failures concentrated on weak-baseline 8\,m links where lateral
 offset contributes unobservable distance; on the deliberately weak 12 and
 16\,m placements (baselines $-79$ to $-84$\,dBm) the $-75$\,dBm gate refuses
 range on every link, whereas an ungated naive inversion on links of this
-strength reports point distances off by 14--22\,m. The refusal policy
-thus eliminates illusory range reports in weak-link sessions, and the
+strength reports point distances off by 14--22\,m. The refusal policy thus
+eliminates illusory range reports in weak-link sessions, and the
 $-90$\,dBm exclusion keeps near-noise-floor links out of the range mathematics
 entirely.
 
@@ -696,7 +688,7 @@ detections.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.50\columnwidth]{fig_modern_04_scans.jpg}
+  \includegraphics[width=0.46\columnwidth]{fig_modern_04_scans.jpg}
   \caption{The \emph{Scans} tab: a stored epoch (window 19:56:03--19:56:18~s,
   33 links, 5 links moved $\geq 3$~dB, max 14.0~dB) and the verdict ``field
   CHANGED since previous scan'' plus scan history---the stored artefact whose
@@ -713,9 +705,10 @@ advertisement dropout (vehicle-body blockage of the paired beacon), excluded
 from the BLE-channel cell only. The RFCOMM loss mechanism alone delivers 10/20
 (50.0\,\%) at 3\,m and 11/20 (55.0\,\%) at 15\,m. The hybrid ``presence and
 loss'' classifier fusing both channels sustains 20/20 (100\,\%) up to 15\,m,
-decaying to 11/18 (61.1\,\%, 95\,\% CI $[38.6,\,79.7]$) at 25\,m. The Transit tab's displayed 94\,\% (Fig.~\ref{fig:transit}) is the
-BLE-channel value at 15\,m and the 100\,\% reported here is the hybrid's, so
-the configuration behind each displayed number is explicit.
+decaying to 11/18 (61.1\,\%, 95\,\% CI $[38.6,\,79.7]$) at 25\,m. The Transit
+tab's displayed 94\,\% (Fig.~\ref{fig:transit}) is the BLE-channel value at
+15\,m and the 100\,\% reported here is the hybrid's, so the configuration
+behind each displayed number is explicit.
 
 \emph{Intent-to-treat accounting.} Because three 15\,m trials lost the paired
 beacon's advertisements to vehicle-body blockage and two 25\,m trials produced
@@ -750,7 +743,7 @@ Bidirectional traffic and close-following targets were included in G4.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.78\columnwidth]{fig_modern_06_transit.jpg}
+  \includegraphics[width=0.72\columnwidth]{fig_modern_06_transit.jpg}
   \caption{The \emph{Transit} tab: a two-node barrier over Classic Bluetooth
   RFCOMM and BLE L2CAP; both a link drop and a link appearance are treated as
   evidence, and detection is reported at each separation. The rate panel is
@@ -765,9 +758,9 @@ Bidirectional traffic and close-following targets were included in G4.
 Table~\ref{tab:cost} reports the measured cost of the sensing duty cycle per
 meter leg (method in Section~IV-D). With the screen off and the device
 unattended (B2), the meter drew 82.7\,mA mean discharge current; the
-state-of-charge drain is \emph{unresolved} rather than zero, because at 1\,\%
-gauge granularity a single step is worth 2.864\,\%/h over the 22.4\,min window
-and the level did not move. With the dashboard visible (B3), current rose to
+state-of-charge drain is \emph{unresolved} rather than zero, since at 1\,\%
+gauge granularity one step is worth 2.864\,\%/h over the 22.4\,min window and
+the level did not move. With the dashboard visible (B3), current rose to
 196.0\,mA and the drain became resolvable at 3.69\,\%/h from two 1\,\%
 steps---a figure whose quantisation floor (1.847\,\%/h per step) gives it
 roughly $\pm50$\,\% precision, so the current column, sampled every $\sim$5\,s,
@@ -778,28 +771,31 @@ cost. Per-application attribution from Android's own estimator was not used: on
 this build it reported a per-UID consumption exceeding the whole-device total, a
 known failure mode.
 
-\begin{table*}[t]
+\begin{table}[htbp]
 \centering
 \caption{Background-operation cost per meter leg ($n = 1$ per leg, Android 16
-handset; the meter reproduces the sensing duty cycle of the deployment build,
-and is not that application). ``n/m'' = not yielded. Current is mean discharge
-current, interquartile range in brackets.}
+handset; the meter reproduces the deployment build's duty cycle and is not that
+application; B5 ran with the display lit). ``n/m'' = not yielded. Current is
+mean discharge current, interquartile range in brackets.}
 \label{tab:cost}
 \footnotesize
-\setlength{\tabcolsep}{2.5pt}
-\begin{tabular}{llrrrrrrrrr}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Leg} & \textbf{Condition} & \textbf{Dur.} & \textbf{SOC drain} &
-\textbf{Current (mA)} & \textbf{Bursts/h} & \textbf{Results/h} &
-\textbf{Epochs/h} & \textbf{Wi-Fi honour.} & \textbf{Storage} &
-\textbf{Mo.\ tx.} \\
+\textbf{Metric} & \textbf{B2} & \textbf{B3} & \textbf{B5} \\
 \midrule
-B2 & screen off, unattended & 22.4\,min & n/m & 82.7\,[19--82] & 117 & 685 & 44 & 0.235 & 0.0\,kB/h & 0\,B \\
-B3 & screen on, dashboard & 33.4\,min & 3.69\,\%/h & 196.0\,[178--195] & 579 & 2285 & 231 & 0.504 & 0.0\,kB/h & 0\,B \\
-B5 & forced Doze (display on) & 20.4\,min & n/m & 179.8\,[160--175] & 774 & 3584 & 309 & 0.0095 & 0.0\,kB/h & 0\,B \\
+Duration & 22.4\,min & 33.4\,min & 20.4\,min \\
+SOC drain & n/m & 3.69\,\%/h & n/m \\
+Current (mA) & 82.7\,[19--82] & 196.0\,[178--195] & 179.8\,[160--175] \\
+Scan bursts/h & 117 & 579 & 774 \\
+Result batches/h & 685 & 2285 & 3584 \\
+Epochs/h & 44 & 231 & 309 \\
+Wi-Fi scans honoured & 0.235 & 0.504 & 0.0095 \\
+App-private storage & 0.0\,kB/h & 0.0\,kB/h & 0.0\,kB/h \\
+Per-UID mobile traffic & 0\,B & 0\,B & 0\,B \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 Background scheduling shapes observation sharply. Every attempted epoch
 completed (ratio 1.000), but in B2 five of eighteen epoch gaps exceeded twice
@@ -815,12 +811,12 @@ second channel behind BLE therefore loses that channel exactly in the idle
 regime an unattended phone reaches. Screen-off availability degrades but does
 not collapse: 180 distinct BLE links/h against 1590/h with the screen visible,
 a roughly ninefold reduction attributable to the platform, not the
-application. The storage and traffic columns of
-Table~\ref{tab:cost} quantify the data-minimization boundary of
-Section~II-E: per-UID mobile traffic was 0\,B in all three conditions,
-including forced deep idle, and app-private storage did not grow measurably in
-any leg (the system-wide mobile counter moved by 266{,}808\,B during B3 from
-unrelated processes; the per-UID counter is the attributable quantity).
+application. The storage and traffic rows of Table~\ref{tab:cost} quantify the
+data-minimization boundary of Section~II-E: per-UID mobile traffic was 0\,B in
+all three conditions, including forced deep idle, and app-private storage did
+not grow measurably in any leg (the system-wide mobile counter moved by
+266{,}808\,B during B3 from unrelated processes; the per-UID counter is the
+attributable quantity).
 
 Not measured and not inferred here: the idle floor against which net-of-idle
 cost would be quoted (leg B1), battery-saver behaviour, a forced-Doze
@@ -852,9 +848,9 @@ stack (E1--E5) and the two-node transit counter, and bounds the
 background-operation cost on one handset and throttle regime---with the caveat
 that the meter's 15\,s epoch understates the deployment build's 10\,s duty
 cycle (Section~IV-D). The cooperative mesh (Section~II-E) is exercised only as
-a deployed interface; its confirmation and false-confirmation performance, and
-gamification behaviour under sustained participation, require a distributed
-multi-node campaign left to future work.
+a deployed interface; its confirmation performance, and gamification behaviour
+under sustained participation, require a distributed multi-node campaign left
+to future work.
 
 \textbf{Threats to validity.} (1)~Single device, single site; generalisability
 unquantified. (2)~Open car park: multipath simpler than urban canyons.
@@ -889,13 +885,12 @@ flow monitoring and emergency situational awareness.
 
 Future work targets the distributed multi-device campaign this campaign
 excludes (mesh confirmation and false-confirmation rates across node densities,
-and gamification dynamics under sustained participation), diverse environments
-and device heterogeneity, the remaining instrumentation legs and the
-participant usability study, and device- and site-transfer of the frozen
-classifier. Mesh resilience against spoofed or adversarial reports also remains
-untested; future work will extend the agreement-based rewards toward
-reputation- and quality-aware mechanisms robust under noisy, spoofed, or
-coordinated behaviour.
+gamification dynamics under sustained participation), diverse environments and
+device heterogeneity, the remaining instrumentation legs and the participant
+usability study, and device- and site-transfer of the frozen classifier; mesh
+resilience against spoofed or adversarial reports also remains untested, and
+future work will extend the agreement-based rewards toward reputation- and
+quality-aware mechanisms robust under noisy, spoofed, or coordinated behaviour.
 
 %---------------------------------------------------------------------------
 % Data availability

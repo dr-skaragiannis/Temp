@@ -29,11 +29,11 @@
 \graphicspath{{figures/}{../figures/}}
 
 % Compact float separation, to meet the 8-page camera-ready limit.
-\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
-\setlength{\floatsep}{6pt plus 2pt minus 2pt}
-\setlength{\intextsep}{6pt plus 2pt minus 2pt}
-\setlength{\dbltextfloatsep}{6pt plus 2pt minus 2pt}
-\setlength{\dblfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{5pt plus 2pt minus 2pt}
+\setlength{\floatsep}{5pt plus 2pt minus 2pt}
+\setlength{\intextsep}{5pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{5pt plus 2pt minus 2pt}
+\setlength{\dblfloatsep}{5pt plus 2pt minus 2pt}
 
 \newcommand{\dB}{\text{dB}}
 \newcommand{\dBm}{\text{dBm}}
@@ -119,23 +119,22 @@ itself~\cite{wang2015har,wong2024,sanchez2020}.
 
 Two further observations motivate our approach. First, smartphones already
 contain the radios such sensing requires: a handset carries a BLE transceiver
-and a dual-band (2.4~GHz and 5~GHz) Wi-Fi interface and can observe the
-received strength of every advertising beacon and access point (AP) in range
+and a dual-band (2.4 and 5~GHz) Wi-Fi interface and can observe the received
+strength of every advertising beacon and access point (AP) in range
 \emph{without} connecting, turning the phone into a multi-band passive sensor
-whose every observed link (phone--beacon or phone--AP) is a measurement ray
-monitored in real time~\cite{ramirez2021,milano2024}---relocating the
-sensing problem from dedicated node
-deployments~\cite{wilson2010,alippi2016} to software. Second, dedicated
-sensing hardware is costly and camera-based alternatives raise privacy
-concerns~\cite{khan2023,zhou2020}; smartphone-based sensing deploys at
-near-zero marginal cost, and when several phones cooperate---a \emph{MeshCrowd
-mesh}---the geometric diversity of their rays can raise both accuracy and
-reach~\cite{li2024}. Such cooperation must be engineered, since participants
-contribute when mechanisms are transparent, rewarded, and socially
-engaging~\cite{zhang2022,wang2018}; gamification is therefore treated here as
-incentive infrastructure rather than decoration, at the cost of making the
-\emph{trustworthiness} of contributed measurements an explicit engineering
-concern.
+whose every observed link is a measurement ray monitored in real
+time~\cite{ramirez2021,milano2024}---relocating the sensing problem from
+dedicated node deployments~\cite{wilson2010,alippi2016} to software. Second,
+dedicated sensing hardware is costly and camera-based alternatives raise
+privacy concerns~\cite{khan2023,zhou2020}; smartphone-based sensing deploys
+at near-zero marginal cost, and when several phones cooperate---a
+\emph{MeshCrowd mesh}---the geometric diversity of their rays can raise both
+accuracy and reach~\cite{li2024}. Such cooperation must be engineered, since
+participants contribute when mechanisms are transparent, rewarded, and
+socially engaging~\cite{zhang2022,wang2018}; gamification is therefore
+treated as incentive infrastructure rather than decoration, at the cost of
+making the \emph{trustworthiness} of contributed measurements an explicit
+engineering concern.
 
 The gap addressed here is between what passive RF sensing achieves in the
 laboratory and what a single, unmodified smartphone held by an ordinary user
@@ -261,17 +260,16 @@ into semantic results (entity class, confidence, range); an \emph{Application}
 layer managing events, epochs, and transit operations; and a
 \emph{Gamification and Mesh} layer in which devices exchange aggregate
 observations and establish agreement. Figure~\ref{fig:method} shows the
-architecture and the functional dataflow: link-level RSSI observations are
-conditioned with adaptive windows, baseline estimation, and event detection;
-detected events are reduced to temporal and signal-strength features
-(attenuation, duration, texture, cross-link coherence) for the
-\texttt{EntityClassifier}, which fuses them across bands; and the results
-become event records, range estimates, and mesh records---the interface to
-the evaluation pipeline (Section~IV) and to the distributed sensing layer.
+dataflow: link-level RSSI observations are conditioned with adaptive windows,
+baseline estimation, and event detection; detected events are reduced to
+temporal and signal-strength features for the \texttt{EntityClassifier},
+which fuses them across bands; and the results become event records, range
+estimates, and mesh records---the interface to the evaluation pipeline
+(Section~IV) and to the distributed sensing layer.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.72\columnwidth]{fig_modern_01_architecture.jpg}
+  \includegraphics[width=0.68\columnwidth]{fig_modern_01_architecture.jpg}
   \caption{Functional architecture of MeshCrowd. Heterogeneous BLE and
   Wi-Fi observations pass through per-link conditioning and multi-band
   inference into event, range, epoch, and mesh artifacts; the six dip
@@ -373,7 +371,7 @@ projections in these example sessions, not measured campaign quantities.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.88\columnwidth]{fig_modern_05_mesh.jpg}
+  \includegraphics[width=0.84\columnwidth]{fig_modern_05_mesh.jpg}
   \caption{The \emph{Mesh} tab: cooperating nodes confirm each other's
   crossings within the stated tolerances ($\pm5$\,s, classification bucket,
   $\pm1$ crossing or $\pm4$\,m), and the radius-comparison panel contrasts
@@ -386,7 +384,7 @@ projections in these example sessions, not measured campaign quantities.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.60\columnwidth]{fig_modern_07_club.jpg}
+  \includegraphics[width=0.56\columnwidth]{fig_modern_07_club.jpg}
   \caption{The \emph{Club} tab: mesh contribution, fused accuracy and crowd
   level, the XP scoring rule (people +10, vehicles +14, disturbances +2,
   mesh confirmation +15 and a $\times 2$ fusion bonus), and session
@@ -436,7 +434,7 @@ accuracy).
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.62\columnwidth]{fig_modern_03_sense.jpg}
+  \includegraphics[width=0.58\columnwidth]{fig_modern_03_sense.jpg}
   \caption{The \emph{Sense} dashboard: 33 passive links (BLE and dual-band
   Wi-Fi) within a 20\,m radius, live counters (People 67, Vehicles 66,
   Disturbances 165, RF Links 33), moving variance 11.45\,dB$^2$, jitter
@@ -561,36 +559,35 @@ Fig.~\ref{fig:field_det} applies to the measured handset and throttle regime.
 Table~\ref{tab:det_distance} and Fig.~\ref{fig:field_det}(a) report
 per-crossing detection and classification at each tape-measured distance.
 Detection is near-perfect inside 4\,m, falls below three-quarters at 8\,m, and
-halves by 16\,m; classification tracks detection a few points below it
-throughout, so a crossing that is detected at these ranges is usually also
-classified correctly. The envelope narrows beyond 12\,m, an attribution the
-instrumented legs of Section~V-D support directly: Android BLE scan throttling
-thins the effective sample density exactly where the link margin is already
-thin (Section~VI). Table~\ref{tab:confusion} pools the labelled E2 events to
-expose the confusion structure, whereas Table~\ref{tab:det_distance}
+drops to 50\,\% at 16\,m; classification tracks detection a few points below
+it, so a crossing detected at these ranges is usually also correctly
+classified. The envelope narrows beyond 12\,m, consistent with Android BLE
+scan throttling thinning the sample density exactly where the link margin is
+already thin (Section~VI). Table~\ref{tab:confusion} pools the labelled E2
+events to expose the confusion structure, whereas Table~\ref{tab:det_distance}
 conditions the same classification on distance: the error mass is missed
-claims concentrated at 8--12\,m, where dip depth approaches the trigger
-floor; direct pedestrian--vehicle confusion is rare, arising where the wider
-lateral profile ($\sigma = 1.15$\,m) of a slow vehicle partly overlaps the
-pedestrian jitter signature; and empty or parked controls produce no moving
-claims, with parked sessions raising the sustained-signature advisory only
-after the 45\,s threshold. Per-band standalone rates are not reported because
-the campaign logged the fused output, though the per-link records in the
-session-log release permit that ablation. Vehicle detection (Table~\ref{tab:vehicle_det},
+claims concentrated at 8--12\,m, where dip depth approaches the trigger floor;
+direct pedestrian--vehicle confusion is rare, arising where the wider lateral
+profile ($\sigma = 1.15$\,m) of a slow vehicle partly overlaps the pedestrian
+jitter signature; and empty or parked controls produce no moving claims, with
+parked sessions raising the sustained-signature advisory only after the 45\,s
+threshold. Per-band standalone rates are not reported because the campaign
+logged the fused output, though the per-link records in the session-log
+release permit that ablation. Vehicle detection (Table~\ref{tab:vehicle_det},
 Fig.~\ref{fig:field_det}(b)) follows the same decay but \emph{crosses} the
 pedestrian curve: it runs a few points below pedestrian detection at 2--8\,m,
 where road-speed transits (30--50\,km/h against $\sim$5\,km/h walking)
 compress dip duration toward the detector's minimum-duration gate---a speed
 dependence Eq.~\eqref{eq:pathloss} does not scale with entity class---and
 above it at 16\,m, where the wider vehicle shadow outweighs that compression.
-The gamified accuracy estimate displayed by the app is validated against
-realized performance: at the 10\,m preset the app displays $\hat{a} = 86$\,\%
-for a single phone, while realized classification accuracy on E1--E2 events
-within 8\,m is 79.2\,\% (38 of 48 crossings), a modest systematic overestimate
-(Bland--Altman difference $-6.8$\,pp, limits of agreement
-$[-18.3,\,4.7]$\,pp); the estimate is conservative at 12--22\,m, where the
-displayed value drops faster than the realized rate, so the app never promises
-more range than the field envelope supports.
+Finally, the gamified accuracy estimate displayed by the app is validated
+against realized performance: at the 10\,m preset the app displays
+$\hat{a} = 86$\,\% for a single phone, while realized classification accuracy
+on E1--E2 events within 8\,m is 79.2\,\% (38 of 48 crossings)---a modest
+systematic overestimate (Bland--Altman difference $-6.8$\,pp, limits of
+agreement $[-18.3,\,4.7]$\,pp)---and it is conservative at 12--22\,m, where
+the displayed value drops faster than the realized rate, so the app never
+promises more range than the field envelope supports.
 
 \begin{table}[htbp]
 \centering
@@ -652,7 +649,7 @@ transits/cell (two lanes); per-cell tallies were not preserved.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.95\columnwidth]{field_envelope.png}
+\includegraphics[width=0.92\columnwidth]{field_envelope.png}
 \caption{Field detection envelope (E1). (a)~Detection and classification probability
 versus tape-measured crossing distance ($n=60$/cell,
 Table~\ref{tab:det_distance}) with 95\,\% Wilson bands. (b)~Moving-vehicle
@@ -669,7 +666,7 @@ transits compress dip duration toward the detector's gate, and above it at
 \subsection{Ranging integrity, epoch change detection, and false positives (E3--E5)}
 On the near-field beacon placements (1--8\,m, 12 links), the gated estimator
 places the true distance inside the reported $\pm41\,\%$ band on three of four
-links, with the failures concentrated on weak-baseline 8\,m links where lateral
+links, the failures concentrated on weak-baseline 8\,m links where lateral
 offset contributes unobservable distance; on the deliberately weak 12 and
 16\,m placements (baselines $-79$ to $-84$\,dBm) the $-75$\,dBm gate refuses
 range on every link, whereas an ungated naive inversion on links of this
@@ -682,19 +679,19 @@ The epoch rule of Section~II-B holds the false-``change'' rate at zero across
 the outdoor sessions: the 10-s store$\to$reset$\to$rescan cycle flags ``change''
 in most scripted event epochs and in none of the control epochs
 (rule-of-three bound $\leq8.3$\,\%), with mean detection latency after scripted
-entry of 6.2\,s ($\pm2.1$\,s), dominated by the 10-s epoch period. Figure~\ref{fig:scans}
-shows a stored epoch of exactly the kind the rule consumes and archives: its
-window, geo-tag, per-link deltas, and the reproduced verdict, exported through
-the same path that produces the session logs behind Section~IV. Epoch change
-detection aggregates link-level shifts over the epoch window and is therefore
-sensitive to sustained presence rather than to individual crossings; it
-complements, and is not interchangeable with, the per-crossing rates of
-Table~\ref{tab:det_distance}.
+entry of 6.2\,s ($\pm2.1$\,s), dominated by the epoch period itself.
+Figure~\ref{fig:scans} shows a stored epoch of exactly the kind the rule
+consumes and archives---window, geo-tag, per-link deltas, and the reproduced
+verdict---exported through the same path that produces the session logs behind
+Section~IV. Epoch change detection aggregates link-level shifts over the epoch
+window and is therefore sensitive to sustained presence rather than to
+individual crossings; it complements, and is not interchangeable with, the
+per-crossing rates of Table~\ref{tab:det_distance}.
 
 Over 1{,}800\,min (48 sessions, 30.0\,h) of empty-scene recording, the system
 publishes five classified events in total (0.17\,events/h; 95\,\% Poisson CI
 0.05--0.39\,events/h), all single-link ``tooWeak'' advisories at Wi-Fi
-frequencies; zero BLE classified events appear in the entire recording
+frequencies; no BLE classified event appears anywhere in the recording
 (rule-of-three bound for BLE: $\leq0.10$\,events/h). The BLE false-positive
 budget therefore holds in real conditions, and the residual Wi-Fi rate is the
 operating point of the ``tooWeak'' advisory class rather than of counted
@@ -702,7 +699,7 @@ detections.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.60\columnwidth]{fig_modern_04_scans.jpg}
+  \includegraphics[width=0.56\columnwidth]{fig_modern_04_scans.jpg}
   \caption{The \emph{Scans} tab: a stored epoch (window 19:56:03--19:56:18~s,
   33 links, 5 links moved $\geq 3$~dB, max 14.0~dB) and the verdict ``field
   CHANGED since previous scan'' plus scan history---the stored artefact whose
@@ -757,7 +754,7 @@ Bidirectional traffic and close-following targets were included in G4.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.88\columnwidth]{fig_modern_06_transit.jpg}
+  \includegraphics[width=0.84\columnwidth]{fig_modern_06_transit.jpg}
   \caption{The \emph{Transit} tab: a two-node barrier over Classic Bluetooth
   RFCOMM and BLE L2CAP; both a link drop and a link appearance are treated as
   evidence, and detection is reported at each separation. The rate panel is
@@ -919,6 +916,7 @@ Helpers and annotators participated with informed consent; no cameras,
 microphones, or personal identifiers are involved, and bystanders are not
 identifiable because no radio identifiers are retained.
 
+{\footnotesize
 \begin{thebibliography}{22}
 \setlength{\itemsep}{0pt}
 \bibitem{wilson2010} J.~Wilson and N.~Patwari, ``Radio tomographic imaging with
@@ -1007,5 +1005,6 @@ goes wrong, is everything all right? Interpreting zero numerators,'' \emph{JAMA}
 vol.~249, no.~13, pp.~1743--1745, 1983, doi: 10.1001/jama.1983.03330370053031.
 
 \end{thebibliography}
+}
 
 \end{document}

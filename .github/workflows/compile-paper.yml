@@ -25,14 +25,15 @@ jobs:
           cd Version-with-figures
           pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
           pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
-          echo "PAGES_VWF=$(pdfinfo MeshCrowd_version_with_figures.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
+          echo "PAGES_VWF=$(grep -o 'Output written on [^ ]* ([0-9]* page' MeshCrowd_version_with_figures.log | tail -1 | grep -o '[0-9]* page' | head -c -5)" >> "$GITHUB_ENV"
           echo "OVERFULL_VWF=$(grep -c 'Overfull' MeshCrowd_version_with_figures.log || true)" >> "$GITHUB_ENV"
+          echo "UNDEF_VWF=$(grep -ci 'undefined' MeshCrowd_version_with_figures.log || true)" >> "$GITHUB_ENV"
       - name: Compile 17-Oct camera-ready (reference)
         run: |
           cd paper-17-Oct
           pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
           pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
-          echo "PAGES_CR=$(pdfinfo MeshCrowd_camera_ready.pdf | awk '/^Pages/{print $2}')" >> "$GITHUB_ENV"
+          echo "PAGES_CR=$(grep -o 'Output written on [^ ]* ([0-9]* page' MeshCrowd_camera_ready.log | tail -1 | grep -o '[0-9]* page' | head -c -5)" >> "$GITHUB_ENV"
       - name: Write build report
         run: |
           {
@@ -43,9 +44,10 @@ jobs:
             grep -o "Output written on [^ ]* ([0-9]* page" Version-with-figures/MeshCrowd_version_with_figures.log | tail -1 || true
           } > build-report.txt
           cat build-report.txt
-      - name: Try committing compiled PDF back to branch
+      - name: Commit compiled PDF and report back to branch
         env:
           BRANCH: arena/1ac83396-temp
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
           {
@@ -55,15 +57,18 @@ jobs:
               path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; msg="${rest##*|}"
               sha=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
                     "${api}/contents/${path}?ref=${BRANCH}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || true)
-              if [ -n "$sha" ] && [ "$sha" != "None" ]; then
-                resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-                  "${api}/contents/${path}" \
-                  --data "$(python3 -c "import json,base64; print(json.dumps({'message':'${msg} [skip ci]','branch':'${BRANCH}','content':base64.b64encode(open('${file}','rb').read()).decode(),'sha':'${sha}'}))")")
-              else
-                resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
-                  "${api}/contents/${path}" \
-                  --data "$(python3 -c "import json,base64; print(json.dumps({'message':'${msg} [skip ci]','branch':'${BRANCH}','content':base64.b64encode(open('${file}','rb').read()).decode()}))")")
-              fi
+              python3 - "$msg" "$file" "$BRANCH" "$sha" <<'PY' > payload.json
+import json, base64, sys
+msg, path, branch, sha = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].strip()
+d = {"message": msg + " [skip ci]", "branch": branch,
+     "content": base64.b64encode(open(path, "rb").read()).decode()}
+if sha:
+    d["sha"] = sha
+print(json.dumps(d))
+PY
+              resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                --data-binary @payload.json "${api}/contents/${path}")
               echo "PUT ${path}: $(echo "$resp" | head -c 300)"
             done
           } > commit-back.txt 2>&1 || true

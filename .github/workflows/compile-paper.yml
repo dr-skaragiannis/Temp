@@ -81,7 +81,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/issues" \
             -f title="Build report: Version-with-figures (${PAGES_VWF} pages)" \
             -F body=@issue-body.md \
-            -f labels="ci-build" > issue-url.txt || true
+            > issue-url.txt || true
           cat issue-url.txt || true
       - name: Upload Version-with-figures PDF
         if: always()

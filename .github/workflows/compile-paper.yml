@@ -10,6 +10,9 @@ on:
 
 jobs:
   compile:
+    permissions:
+      contents: write
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

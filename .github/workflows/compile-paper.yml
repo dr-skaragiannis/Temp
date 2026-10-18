@@ -1,0 +1,105 @@
+name: Compile MeshCrowd papers
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Version-with-figures/**'
+      - 'paper-17-Oct/**'
+      - '.github/workflows/compile-paper.yml'
+
+jobs:
+  compile:
+    permissions:
+      contents: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq texlive-latex-base texlive-latex-recommended texlive-fonts-recommended
+      - name: Compile Version-with-figures
+        run: |
+          cd Version-with-figures
+          pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
+          pdflatex -interaction=nonstopmode MeshCrowd_version_with_figures.tex
+          echo "PAGES_VWF=$(grep -o 'Output written on [^ ]* ([0-9]* page' MeshCrowd_version_with_figures.log | tail -1 | grep -o '[0-9]* page' | head -c -5)" >> "$GITHUB_ENV"
+          echo "OVERFULL_VWF=$(grep -c 'Overfull' MeshCrowd_version_with_figures.log || true)" >> "$GITHUB_ENV"
+          echo "UNDEF_VWF=$(grep -ci 'undefined' MeshCrowd_version_with_figures.log || true)" >> "$GITHUB_ENV"
+      - name: Compile 17-Oct camera-ready (reference)
+        run: |
+          cd paper-17-Oct
+          pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
+          pdflatex -interaction=nonstopmode MeshCrowd_camera_ready.tex
+          echo "PAGES_CR=$(grep -o 'Output written on [^ ]* ([0-9]* page' MeshCrowd_camera_ready.log | tail -1 | grep -o '[0-9]* page' | head -c -5)" >> "$GITHUB_ENV"
+      - name: Write build report
+        run: |
+          {
+            echo "### Build report"
+            echo
+            echo "Version-with-figures pages: $PAGES_VWF"
+            echo "Version-with-figures overfull boxes: $OVERFULL_VWF"
+            echo "Version-with-figures undefined refs/cites: $UNDEF_VWF"
+            echo "17-Oct camera-ready pages: $PAGES_CR"
+            echo
+            echo '```'
+            grep -E "Overfull|undefined|Undefined" Version-with-figures/MeshCrowd_version_with_figures.log | head -20 || true
+            grep -o "Output written on [^ ]* ([0-9]* pages?" Version-with-figures/MeshCrowd_version_with_figures.log | tail -1 || true
+            echo '```'
+          } > build-report.txt
+          cat build-report.txt
+      - name: Commit compiled PDF and report back to branch
+        env:
+          BRANCH: arena/1ac83396-temp
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          {
+            echo "== commit-back attempts =="
+            for spec in "Version-with-figures/MeshCrowd_version_with_figures.pdf|Version-with-figures/MeshCrowd_version_with_figures.pdf|CI-compiled-PDF" \
+                        "Version-with-figures/build-report.txt|build-report.txt|CI-build-report"; do
+              path="${spec%%|*}"; rest="${spec#*|}"; file="${rest%%|*}"; msg="${rest##*|}"
+              sha=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+                    "${api}/contents/${path}?ref=${BRANCH}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || true)
+              python3 - "$msg" "$file" "$BRANCH" "$sha" > payload.json <<'PY'
+          import json, base64, sys
+          msg, path, branch, sha = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].strip()
+          d = {"message": msg + " [skip ci]", "branch": branch,
+               "content": base64.b64encode(open(path, "rb").read()).decode()}
+          if sha:
+              d["sha"] = sha
+          print(json.dumps(d))
+          PY
+              resp=$(curl -s -X PUT -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                --data-binary @payload.json "${api}/contents/${path}")
+              echo "PUT ${path}: $(echo "$resp" | head -c 300)"
+            done
+          } > commit-back.txt 2>&1 || true
+          cat commit-back.txt
+      - name: File build-report issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            cat build-report.txt
+            echo
+            echo "### Commit-back output"
+            echo
+            cat commit-back.txt 2>/dev/null || echo "(none)"
+          } > issue-body.md
+          gh api "repos/${GITHUB_REPOSITORY}/issues" \
+            -f title="Build report: Version-with-figures (${PAGES_VWF} pages)" \
+            -F body=@issue-body.md \
+            > issue-url.txt || true
+          cat issue-url.txt || true
+      - name: Upload Version-with-figures PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshcrowd-version-with-figures-pdf
+          path: Version-with-figures/MeshCrowd_version_with_figures.pdf
+
+# trigger: compile to PDF on demand

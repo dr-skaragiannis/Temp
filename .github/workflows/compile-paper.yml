@@ -101,3 +101,5 @@ jobs:
         with:
           name: meshcrowd-version-with-figures-pdf
           path: Version-with-figures/MeshCrowd_version_with_figures.pdf
+
+# trigger: compile to PDF on demand

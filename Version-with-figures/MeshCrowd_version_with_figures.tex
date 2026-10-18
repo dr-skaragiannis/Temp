@@ -363,12 +363,12 @@ projections in these example sessions, not measured campaign quantities.
   \centering
   \begin{minipage}[t]{0.48\columnwidth}
     \centering
-    \includegraphics[width=\linewidth]{fig_modern_05_mesh.jpg}\\
+    \includegraphics[width=0.92\linewidth]{fig_modern_05_mesh.jpg}\\
     \footnotesize\textbf{(a)} The \emph{Mesh} tab.
   \end{minipage}%
   \begin{minipage}[t]{0.48\columnwidth}
     \centering
-    \includegraphics[width=\linewidth]{fig_modern_07_club.jpg}\\
+    \includegraphics[width=0.88\linewidth]{fig_modern_07_club.jpg}\\
     \footnotesize\textbf{(b)} The \emph{Club} tab.
   \end{minipage}
   \caption{Mesh and gamification interfaces. (a)~The \emph{Mesh} tab:
@@ -430,12 +430,12 @@ accuracy).
   \centering
   \begin{minipage}[t]{0.48\columnwidth}
     \centering
-    \includegraphics[width=\linewidth]{fig_modern_03_sense.jpg}\\
+    \includegraphics[width=0.92\linewidth]{fig_modern_03_sense.jpg}\\
     \footnotesize\textbf{(a)} The \emph{Sense} dashboard.
   \end{minipage}%
   \begin{minipage}[t]{0.48\columnwidth}
     \centering
-    \includegraphics[width=\linewidth]{fig_modern_04_scans.jpg}\\
+    \includegraphics[width=0.88\linewidth]{fig_modern_04_scans.jpg}\\
     \footnotesize\textbf{(b)} The \emph{Scans} tab.
   \end{minipage}
   \caption{Deployed interface. (a)~The \emph{Sense} dashboard: 33 passive
@@ -670,13 +670,12 @@ transits compress dip duration toward the detector's gate, and above it at
 On the near-field beacon placements (1--8\,m, 12 links), the gated estimator
 places the true distance inside the reported $\pm41\,\%$ band on three of four
 links, the failures concentrated on weak-baseline 8\,m links where lateral
-offset contributes unobservable distance; on the deliberately weak 12 and
-16\,m placements (baselines $-79$ to $-84$\,dBm) the $-75$\,dBm gate refuses
-range on every link, whereas an ungated naive inversion on links of this
-strength reports point distances off by 14--22\,m. The refusal policy thus
-eliminates illusory range reports in weak-link sessions, and the
-$-90$\,dBm exclusion keeps near-noise-floor links out of the range mathematics
-entirely.
+offset adds unobservable distance; on the deliberately weak 12 and
+16\,m placements ($-79$ to $-84$\,dBm baselines) the $-75$\,dBm gate refuses
+range on every link, whereas an ungated inversion reports point distances off
+by 14--22\,m. The refusal policy thus eliminates illusory range reports in
+weak-link sessions, and the $-90$\,dBm exclusion keeps near-noise-floor
+links out of the range mathematics entirely.
 
 The epoch rule of Section~II-B holds the false-``change'' rate at zero across
 the outdoor sessions: the 10-s store$\to$reset$\to$rescan cycle flags ``change''
@@ -686,10 +685,9 @@ entry of 6.2\,s ($\pm2.1$\,s), dominated by the epoch period itself.
 Figure~\ref{fig:scans} shows a stored epoch of exactly the kind the rule
 consumes and archives---window, geo-tag, per-link deltas, and the reproduced
 verdict---exported through the same path that produces the session logs behind
-Section~IV. Epoch change detection aggregates link-level shifts over the epoch
-window, so it is sensitive to sustained presence rather than to individual
-crossings; it complements, and is not interchangeable with, the per-crossing
-rates of Table~\ref{tab:det_distance}.
+Section~IV. Epoch change detection therefore senses sustained presence rather than
+individual crossings; it complements, and is not interchangeable with, the
+per-crossing rates of Table~\ref{tab:det_distance}.
 
 Over 1{,}800\,min (48 sessions, 30.0\,h) of empty-scene recording, the system
 publishes five classified events in total (0.17\,events/h; 95\,\% Poisson CI
@@ -831,9 +829,9 @@ or permission-burden quantity.
 % VI. DISCUSSION
 %---------------------------------------------------------------------------
 \section{Discussion}
-The field envelope narrows beyond 12\,m: detection falls from 73.3\,\% at
-8\,m to 50.0\,\% at 16\,m and 15.0\,\% at 22\,m, while observed dip depths
-approach the adaptive trigger floor in the same interval---behaviour that
+The field envelope narrows beyond 12\,m---detection falls from 73.3\,\% at
+8\,m to 50.0\,\% at 16\,m and 15.0\,\% at 22\,m---while observed dip depths
+approach the adaptive trigger floor in the same interval, the behaviour
 Eq.~\eqref{eq:pathloss} anticipates when scintillation begins to dominate the
 shadow term. Two platform effects shape the curve: Android BLE scan throttling
 lowers the effective sample rate where the dip margin is thin (Section~V-D),

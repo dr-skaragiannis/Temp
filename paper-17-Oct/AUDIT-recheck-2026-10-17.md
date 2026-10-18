@@ -135,6 +135,10 @@ Legend: **C** = closed · **P** = partial/honest-open · **O** = open.
 - **D6 (citation style, minor):** `zhang2022` — Crossref lists four authors (J. Zhang, X. Li, Z. Shi, C. Zhu); "et al." truncates the fourth. List all four per IEEE style.
 - **D7 (wording, minor):** §V-A "drops **below** 50 % at 16 m" → "to 50 % at 16 m" (the value is exactly 50.0 %); Conclusions "classification **above** 80 % inside 6 m" → "at least 80 %" (exactly 80.0 % at 6 m); §V-G "The 94 % shown on the Transit tab" now dangles (the Transit screenshot was removed) — reword to "the app's Transit tab displays 94 %…".
 - **D8 (hygiene):** stale `run1.log`/`run2.log` contain the pre-fix 147.3 pt overfull; the final `$out/cr.log` is clean. Remove the stale logs from the submission folder. **Remediated 2026-10-18:** both files removed from the folder (retained in git history); the 147.3 pt figure was re-verified by decoding the UTF-16LE logs before deletion.
+- **D9 (epoch period — reopened by the figure restoration; needs the author's confirmation).** The 17-Oct text was reconciled to a 10-s deployment cycle (E4's 36+36 epochs over the 12-min timeline; the 6.2 s mean latency ≈ half-period + scan; the evaluation config's `epoch.durationMs = 10000`). But the restored Fig. 2(b) Scans capture — stated in §III to be a real capture from the campaign handset — displays a **15-s window** (19:56:03–19:56:18), the pre-review caption called it "a stored 15-s epoch", and `Response2.md` describes the deployment build's epoch as 15 s ("same 15 s epoch"). If v2.1 truly runs 15-s epochs, §V-B/§IV-D/§VI of the version must revert to 15 s **and** E4's "36 event + 36 control epochs from a 12-min timeline" must be re-derived (12 min at 15 s gives 24+24; 36+36 requires either a 10-s epoch or an 18-min timeline). The repository's quantitative records (epoch counts, latency, evaluation config) support 10 s; the campaign-time prose and the capture support 15 s. Resolve against the session logs or the v2.1 build config before submission.
+- **D10 (cross-reference, minor — fixed in Version-with-figures).** The contribution bullet claimed "per-band dip-depth characteristics accompanying the range results (Fig. field_det(b))", but panel (b) is vehicle-vs-pedestrian detection (its caption says so); per-band dip-depth curves accompany the session-log release (the pre-review wording). Inherited from the 17-Oct and missed by both prior audits; the bullet now defers the curves to the release, consistent with Q4's honest status.
+- **D11 (precision, minor — fixed in Version-with-figures).** §V-B condensed E3's "9 of 12 links (75 %)" to "three of four links" — the wrong noun (there are 12 links; the four are the distances). Now "three of the four distances (9 of 12 links)". The condensation also dropped E3's median absolute point error (3.41 m), the −72 dBm baseline value, and the ∼4 m unobservable-distance quantification — acceptable under the qualitative-text mandate, but note they are gone.
+- **D12 (numeric nit — fixed in Version-with-figures).** §V-D tied the 2.864 %/h quantisation floor to the 22.4-min window; 1 step over 22.4 min is ≈2.7 %/h (2.864 corresponds to Eval-Phone's ∼21-minute gauge window). Now "about 2.7 %/h over the 22.4 min window"; the conclusion (drain below gauge resolution, n/m) is unaffected.
 
 ---
 
@@ -175,3 +179,36 @@ A new camera-ready candidate was produced at `Version-with-figures/MeshCrowd_ver
 - all eight re-audit defects (D1–D7) are fixed in this version, and the m2 "real captures" sentence is restored to §III.
 
 Reference block is set in `\scriptsize` to meet the 8-page limit with seven figures; if the venue prefers, the cheapest reversal is returning the references to `\footnotesize` and shrinking the five tab screenshots further. Build reports for each compilation round are filed as GitHub issues labelled by the workflow (issue #9 records the final 8-page build).
+
+### 8.1 Full re-verification of the version against its source (2026-10-18)
+
+Every reviewer item and every audit claim was re-checked against the
+actual `.tex` (not the earlier notes). Confirmed present and correct:
+title immutable; abstract demotes mesh/gamification to design
+contributions with "20/20" attributed to the hybrid fuser (M2);
+keywords carry `entity classification` and `transit counting` (m6);
+`\markboth`/`\IEEEpubid` header and copyright line (m8, C4); §II-D full
+classifier specification with the frozen-parameter/no-train-test-split
+statement (R2-general); §II-E complete privacy subsection — adversary
+set, egress enumeration (time bucket, class, radial band), seven
+residual risks, measured 0 B per-UID counter with the 266 808 B
+system-wide caveat, salted exporter hashing, and the explicit
+not-supplied list (M5/C1/Q3); §III with the restored "real captures
+from single sessions on the campaign handset" sentence (m2); §IV-B
+predefined evaluable rule before the results (C2); Table I counts and
+all seven Wilson CIs recompute exactly (M1/Q1/C2); vehicle table
+de-claimed (M1); all transit numbers — 16/17→16/20, 11/18→11/20,
+20/20, 10/20, 11/20, 56/60, 14/17, 0/160 with rule-of-three bounds —
+recompute exactly (C2); §V-D/Table IV reconcile value-for-value with
+`Eval-Phone.md` (C3); the 2.355 speed derivation (m4); the seven-item
+threats block (M4); every hardcoded `Section~` pointer resolves in the
+condensed four-subsection Section V; 22/22 bibliography entries cited,
+first-citation order intact, no dangling keys (m1); D1–D7 all fixed.
+
+New findings from this re-check: **D9** (epoch period — the restored
+Scans capture shows a 15-s window against the text's 10-s cycle;
+escalated to the author, evidence on both sides), and D10–D12 (fixed:
+per-band bullet pointer, E3 "three of four" noun, 2.864 %/h window).
+Remaining honest-open items are unchanged: M3, M4, M6, m5, m7, Q4,
+E2 tallies, E1-count provenance, and the field-data provenance
+conflict (Part F).

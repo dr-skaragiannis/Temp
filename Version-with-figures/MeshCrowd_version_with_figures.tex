@@ -173,8 +173,7 @@ quality-aware gamification, validated in a physical deployment:
 \item A \textbf{multi-band fusion classifier} over per-link attenuation
 features (dip depth, duration, texture, variance, prominence, multi-link
 coherence) across BLE, Wi-Fi~2.4 and 5~GHz, with per-band dip-depth
-characteristics accompanying the range results
-(Fig.~\ref{fig:field_det}(b)).
+curves accompanying the session-log release.
 
 \item A \textbf{scan-epoch change-detection and gated-ranging mechanism}: a
 log-distance estimate is produced only when the received signal clears a
@@ -668,8 +667,9 @@ transits compress dip duration toward the detector's gate, and above it at
 
 \subsection{Ranging integrity, epoch change detection, and false positives (E3--E5)}
 On the near-field beacon placements (1--8\,m, 12 links), the gated estimator
-places the true distance inside the reported $\pm41\,\%$ band on three of four
-links, the failures concentrated on weak-baseline 8\,m links where lateral
+places the true distance inside the reported $\pm41\,\%$ band on three
+of the four distances (9 of 12 links), the failures concentrated on
+weak-baseline 8\,m links where lateral
 offset adds unobservable distance; on the deliberately weak 12 and
 16\,m placements ($-79$ to $-84$\,dBm baselines) the $-75$\,dBm gate refuses
 range on every link, whereas an ungated inversion reports point distances off
@@ -760,8 +760,9 @@ Bidirectional traffic and close-following targets were included in G4.
 Table~\ref{tab:cost} reports the measured cost of the sensing duty cycle per
 meter leg (method in Section~IV-D). With the screen off and the device
 unattended (B2), the meter drew 82.7\,mA mean discharge current; the
-state-of-charge drain is \emph{unresolved} rather than zero, since at 1\,\%
-gauge granularity one step is worth 2.864\,\%/h over the 22.4\,min window and
+state-of-charge drain is \emph{unresolved} rather than zero, since at
+1\,\% gauge granularity one step is worth about 2.7\,\%/h over the
+22.4\,min window and
 the level did not move. With the dashboard visible (B3), current rose to
 196.0\,mA and the drain became resolvable at 3.69\,\%/h from two 1\,\%
 steps---a figure whose quantisation floor (1.847\,\%/h per step) gives it

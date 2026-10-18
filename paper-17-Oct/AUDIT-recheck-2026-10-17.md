@@ -134,7 +134,7 @@ Legend: **C** = closed · **P** = partial/honest-open · **O** = open.
 - **D5 (citation):** `beresford2003` printed "A. M. Beresford"; correct initial is **A. R.** (Crossref; the pre-review version had it right).
 - **D6 (citation style, minor):** `zhang2022` — Crossref lists four authors (J. Zhang, X. Li, Z. Shi, C. Zhu); "et al." truncates the fourth. List all four per IEEE style.
 - **D7 (wording, minor):** §V-A "drops **below** 50 % at 16 m" → "to 50 % at 16 m" (the value is exactly 50.0 %); Conclusions "classification **above** 80 % inside 6 m" → "at least 80 %" (exactly 80.0 % at 6 m); §V-G "The 94 % shown on the Transit tab" now dangles (the Transit screenshot was removed) — reword to "the app's Transit tab displays 94 %…".
-- **D8 (hygiene):** stale `run1.log`/`run2.log` contain the pre-fix 147.3 pt overfull; the final `$out/cr.log` is clean. Remove the stale logs from the submission folder.
+- **D8 (hygiene):** stale `run1.log`/`run2.log` contain the pre-fix 147.3 pt overfull; the final `$out/cr.log` is clean. Remove the stale logs from the submission folder. **Remediated 2026-10-18:** both files removed from the folder (retained in git history); the 147.3 pt figure was re-verified by decoding the UTF-16LE logs before deletion.
 
 ---
 

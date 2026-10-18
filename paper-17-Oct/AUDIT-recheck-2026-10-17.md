@@ -161,3 +161,17 @@ Legend: **C** = closed · **P** = partial/honest-open · **O** = open.
 ---
 
 *Re-audit performed 2026-10-17 against Crossref (api.crossref.org), the full 17-Oct `.tex`, the compiled PDF, the pre-review manuscript, the response letter, and the evaluation evidence bundle. All arithmetic (Wilson intervals, percentages, counts, meter figures) recomputed independently.*
+
+---
+
+## 8. Addendum — `Version-with-figures/` (same date)
+
+A new camera-ready candidate was produced at `Version-with-figures/MeshCrowd_version_with_figures.tex`, compiled on GitHub Actions (workflow `.github/workflows/compile-paper.yml`; the sandbox has no TeX distribution, so compilation runs in CI and the PDF is committed back to the branch automatically). Verified state of the compiled PDF:
+
+- **8 pages** (venue limit met), **0 overfull hboxes**, **0 undefined references/citations**;
+- **all seven figures restored** with explanatory text: architecture (§II-A), Mesh+Club tabs paired (§II-E), Sense+Scans tabs paired (§III/§V-B), Transit tab (§V-C), and the field envelope (§V-A) — 7 embedded images confirmed in the PDF;
+- **Section V condensed** from eight subsections to four qualitative ones — (A) field envelope, detection, classification and vehicle contrast (E1, E2); (B) ranging integrity, epoch change detection and false positives (E3–E5); (C) two-node transit counting (G4); (D) instrumented background-operation cost (B2, B3, B5) — with the tables retaining every count, denominator, and confidence interval the reviewers required (M1, C2);
+- the cost table (Table IV) was transposed to single-column form (metrics × legs) to buy the vertical space the figures consume;
+- all eight re-audit defects (D1–D7) are fixed in this version, and the m2 "real captures" sentence is restored to §III.
+
+Reference block is set in `\scriptsize` to meet the 8-page limit with seven figures; if the venue prefers, the cheapest reversal is returning the references to `\footnotesize` and shrinking the five tab screenshots further. Build reports for each compilation round are filed as GitHub issues labelled by the workflow (issue #9 records the final 8-page build).

@@ -445,7 +445,9 @@ accuracy).
   tab: a stored epoch (window 19:56:03--19:56:18\,s, 33 links, 5 links
   moved $\geq 3$\,dB, max 14.0\,dB) and the verdict ``field CHANGED since
   previous scan'' plus scan history---the stored artefact whose stable-level
-  rule Section~II-B defines and Section~V-B measures.}
+  rule Section~II-B defines and Section~V-B measures. The archived
+  window displayed here spans 15\,s; the frozen deployment epoch is
+  the 10-s comparison cycle of Section~V-B.}
   \label{fig:sense}
   \label{fig:scans}
 \end{figure}
@@ -682,8 +684,8 @@ the outdoor sessions: the 10-s store$\to$reset$\to$rescan cycle flags ``change''
 in most scripted event epochs and in none of the control epochs
 (rule-of-three bound $\leq8.3$\,\%), with mean detection latency after scripted
 entry of 6.2\,s ($\pm2.1$\,s), dominated by the epoch period itself.
-Figure~\ref{fig:scans} shows a stored epoch of exactly the kind the rule
-consumes and archives---window, geo-tag, per-link deltas, and the reproduced
+Figure~\ref{fig:scans} shows a stored epoch of the kind the rule
+archives and exports---window, geo-tag, per-link deltas, and the reproduced
 verdict---exported through the same path that produces the session logs behind
 Section~IV. Epoch change detection therefore senses sustained presence rather than
 individual crossings; it complements, and is not interchangeable with, the

@@ -100,12 +100,11 @@ evaluation, mobile crowdsensing, privacy, gamification.
 %---------------------------------------------------------------------------
 \section{Introduction}
 \subsection{Background and Motivation}
-Passive RF sensing exploits the fact that physical objects modify wireless
-propagation: when a human body or a vehicle crosses a radio link it
-attenuates, scatters, and diffracts the field, and the received signal
-strength dips and recovers with a characteristic signature. Because the
-target carries nothing and only the observers hold devices, this paradigm is
-called target-device-free sensing, and it underpins applications from indoor
+Passive RF sensing exploits the modification of wireless propagation by
+physical objects: when a human body or a vehicle crosses a radio link, the
+received signal strength dips and recovers with a characteristic signature.
+Because the target carries nothing and only the observers hold devices, this
+is target-device-free sensing, underpinning applications from indoor
 localization and ambient-assisted living to occupancy analytics and traffic
 monitoring~\cite{wilson2010}. Shadowing of a pedestrian at
 2.4~GHz can reach several decibels with a lateral profile on the order of a
@@ -129,42 +128,40 @@ dedicated sensing hardware is costly and camera-based alternatives raise
 privacy concerns~\cite{khan2023,zhou2020}; smartphone-based sensing deploys
 at near-zero marginal cost, and when several phones cooperate---a
 \emph{MeshCrowd mesh}---the geometric diversity of their rays can raise both
-accuracy and reach~\cite{li2024}. Cooperation must be engineered, since
-participants contribute when mechanisms are transparent, rewarded, and
-socially engaging~\cite{zhang2022,wang2018}; gamification is therefore
-incentive infrastructure rather than decoration, at the cost of making the
+accuracy and reach~\cite{li2024}. Cooperation must be engineered: participants contribute when mechanisms
+are transparent, rewarded, and socially
+engaging~\cite{zhang2022,wang2018}, so gamification is incentive
+infrastructure rather than decoration, at the cost of making the
 \emph{trustworthiness} of contributed measurements an explicit engineering
 concern.
 
 The gap addressed here is between what passive RF sensing achieves in the
 laboratory and what a single, unmodified smartphone held by an ordinary user
-can deliver outdoors. Three difficulties compound. First, detection is
-physics-limited: occlusion attenuation decays with distance while
-environmental fluctuation grows with range, so beyond some distance the event
-becomes statistically indistinguishable from noise, and a system that does not
-quantify this limit misleads its user. Second, RSSI range estimation is
-ill-conditioned: the log-distance model that converts decibels into metres
-can be wrong by tens of metres on weak links~\cite{ramirez2021,milano2024}.
-Third, cooperative mode introduces an integrity problem: a device can report
-forged beacons or measurements, and the mesh mean---the very quantity
-gamified reliability rewards---becomes an attack
-surface~\cite{casar2022,antonioli2020}. Prior work often reports accuracy
-without stating the distance at which the signal-to-noise ratio supports it,
+can deliver outdoors. Detection is physics-limited: occlusion attenuation
+decays with distance while environmental fluctuation grows with range, so
+beyond some distance a crossing becomes statistically indistinguishable from
+noise, and a system that does not quantify this limit misleads its user. RSSI
+range estimation is ill-conditioned: the log-distance model that converts
+decibels into metres can be wrong by tens of metres on weak
+links~\cite{ramirez2021,milano2024}. Cooperative mode finally introduces an
+integrity problem: a device can report forged beacons or measurements, and
+the mesh mean---the very quantity gamified reliability rewards---becomes an
+attack surface~\cite{casar2022,antonioli2020}. Prior work often reports
+accuracy without stating the distance the signal-to-noise ratio supports,
 conflates classification with detection, or assumes infrastructure phones do
 not have.
 
 This paper presents MeshCrowd, a native smartphone application that turns
 commodity phones into cooperative sensing nodes without custom
 infrastructure, relying solely on their BLE and dual-band Wi-Fi radios, and
-closes the gap above with a complete physical-deployment campaign: five
-labelled field protocols (Section~IV) producing 420 tape-measured pedestrian
+closes the gap with a complete physical-deployment campaign: five labelled
+field protocols (Section~IV) producing 420 tape-measured pedestrian
 crossings, 240 labelled entity-classification events, 80 moving-vehicle
 transits, and 1{,}800\,min of silent-control recording on an unmodified
-handset with observer- and GPS-verified ground truth, together with two-node
-transit trials at 3--25\,m separations (Section~V-C) and the practical cost
-of the sensing duty cycle---energy, background-operation limits, storage, and
-network traffic---measured separately by instrumented legs
-(Sections~IV-D and~V-D).
+handset with observer- and GPS-verified ground truth, plus two-node transit
+trials at 3--25\,m separations (Section~V-C) and the duty cycle's practical
+cost---energy, background-operation limits, storage, and network
+traffic---measured by instrumented legs (Sections~IV-D and~V-D).
 
 \subsection{Our Contribution}
 MeshCrowd's primary contribution is the design and implementation of a
@@ -264,7 +261,7 @@ estimates, and mesh records---the interface to the evaluation pipeline
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.56\columnwidth]{fig_modern_01_architecture.jpg}
+  \includegraphics[width=0.52\columnwidth]{fig_modern_01_architecture.jpg}
   \caption{Functional architecture of MeshCrowd. Heterogeneous BLE and
   Wi-Fi observations pass through per-link conditioning and multi-band
   inference into event, range, epoch, and mesh artifacts; the six dip
@@ -354,9 +351,9 @@ reliability bonus. The gamification layer scores a detected person at 10~XP,
 a vehicle 14, a disturbance 2, and a mesh confirmation 15 (with a $\times2$
 fusion bonus and a $\times1.25$ multiplier for the node nearest the fused
 estimate), so rewards track measurement agreement rather than raw activity.
-For perimeter monitoring, the mesh can be replaced by a transit mode in which
-two nodes form a digital tripwire over Classic Bluetooth RFCOMM and BLE
-L2CAP, treating both a link drop and a link appearance as evidence of a
+For perimeter monitoring, the mesh can be replaced by a transit mode in
+which two nodes form a digital tripwire over Classic Bluetooth RFCOMM and
+BLE L2CAP, both a link drop and a link appearance counting as evidence of a
 passing object. Figures~\ref{fig:mesh} and~\ref{fig:club} show how the mesh
 state and these scoring rules are presented to the user; the fused-accuracy,
 radius, and crowd-level values visible in the captures are the app's own live
@@ -364,24 +361,28 @@ projections in these example sessions, not measured campaign quantities.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.72\columnwidth]{fig_modern_05_mesh.jpg}
-  \caption{The \emph{Mesh} tab: cooperating nodes confirm each other's
-  crossings within the stated tolerances ($\pm5$\,s, classification bucket,
-  $\pm1$ crossing or $\pm4$\,m), and the radius-comparison panel contrasts
-  standalone with cooperative operating range, with a reliability bonus for
-  devices nearest the fused estimate. The fused-accuracy and coverage values
-  shown (81\,\%, 4--12\,m vs.\ 20--40\,m) are the app's own live projections
-  in this example session, not measured campaign quantities.}
+  \begin{minipage}[t]{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{fig_modern_05_mesh.jpg}\\
+    \footnotesize\textbf{(a)} The \emph{Mesh} tab.
+  \end{minipage}%
+  \begin{minipage}[t]{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{fig_modern_07_club.jpg}\\
+    \footnotesize\textbf{(b)} The \emph{Club} tab.
+  \end{minipage}
+  \caption{Mesh and gamification interfaces. (a)~The \emph{Mesh} tab:
+  cooperating nodes confirm each other's crossings within the stated
+  tolerances ($\pm5$\,s, classification bucket, $\pm1$ crossing or
+  $\pm4$\,m), and the radius-comparison panel contrasts standalone with
+  cooperative operating range, with a reliability bonus for devices nearest
+  the fused estimate. (b)~The \emph{Club} tab: mesh contribution, fused
+  accuracy and crowd level, the XP scoring rule (people +10, vehicles +14,
+  disturbances +2, mesh confirmation +15 and a $\times 2$ fusion bonus),
+  and session history. The fused-accuracy, radius, and crowd-level values
+  visible in both captures are the app's own live projections in these
+  example sessions, not measured campaign quantities.}
   \label{fig:mesh}
-\end{figure}
-
-\begin{figure}[htb!]
-  \centering
-  \includegraphics[width=0.46\columnwidth]{fig_modern_07_club.jpg}
-  \caption{The \emph{Club} tab: mesh contribution, fused accuracy and crowd
-  level, the XP scoring rule (people +10, vehicles +14, disturbances +2,
-  mesh confirmation +15 and a $\times 2$ fusion bonus), and session
-  history.}
   \label{fig:club}
 \end{figure}
 
@@ -427,13 +428,27 @@ accuracy).
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.48\columnwidth]{fig_modern_03_sense.jpg}
-  \caption{The \emph{Sense} dashboard: 33 passive links (BLE and dual-band
-  Wi-Fi) within a 20\,m radius, live counters (People 67, Vehicles 66,
-  Disturbances 165, RF Links 33), moving variance 11.45\,dB$^2$, jitter
-  1.79\,dB, classifier confidence 68\,\%, and the attenuation envelope with
-  markers at recent crossings.}
+  \begin{minipage}[t]{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{fig_modern_03_sense.jpg}\\
+    \footnotesize\textbf{(a)} The \emph{Sense} dashboard.
+  \end{minipage}%
+  \begin{minipage}[t]{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{fig_modern_04_scans.jpg}\\
+    \footnotesize\textbf{(b)} The \emph{Scans} tab.
+  \end{minipage}
+  \caption{Deployed interface. (a)~The \emph{Sense} dashboard: 33 passive
+  links (BLE and dual-band Wi-Fi) within a 20\,m radius, live counters
+  (People 67, Vehicles 66, Disturbances 165, RF Links 33), moving variance
+  11.45\,dB$^2$, jitter 1.79\,dB, classifier confidence 68\,\%, and the
+  attenuation envelope with markers at recent crossings. (b)~The \emph{Scans}
+  tab: a stored epoch (window 19:56:03--19:56:18\,s, 33 links, 5 links
+  moved $\geq 3$\,dB, max 14.0\,dB) and the verdict ``field CHANGED since
+  previous scan'' plus scan history---the stored artefact whose stable-level
+  rule Section~II-B defines and Section~V-B measures.}
   \label{fig:sense}
+  \label{fig:scans}
 \end{figure}
 
 %---------------------------------------------------------------------------
@@ -560,9 +575,8 @@ approaches the trigger floor; direct pedestrian--vehicle confusion is rare,
 arising where a slow vehicle's wider lateral profile ($\sigma = 1.15$\,m)
 partly overlaps the pedestrian jitter signature; and empty or parked controls
 produce no moving claims, parked sessions raising the sustained-signature
-advisory only after the 45\,s threshold. Per-band standalone rates are not
-reported because the campaign logged the fused output, though the per-link
-records in the session-log release permit that ablation. Vehicle detection
+advisory only after the 45\,s threshold. Per-band standalone rates are not reported (the campaign logged the
+fused output; the session-log release permits that ablation). Vehicle detection
 (Table~\ref{tab:vehicle_det}, Fig.~\ref{fig:field_det}(b)) follows the same
 decay but \emph{crosses} the pedestrian curve: it runs a few points below
 pedestrian detection at 2--8\,m, where road-speed transits (30--50\,km/h
@@ -638,7 +652,7 @@ transits/cell (two lanes); per-cell tallies were not preserved.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.84\columnwidth]{field_envelope.png}
+\includegraphics[width=0.80\columnwidth]{field_envelope.png}
 \caption{Field detection envelope (E1). (a)~Detection and classification probability
 versus tape-measured crossing distance ($n=60$/cell,
 Table~\ref{tab:det_distance}) with 95\,\% Wilson bands. (b)~Moving-vehicle
@@ -685,16 +699,6 @@ frequencies; no BLE classified event appears anywhere in the recording
 budget therefore holds in real conditions, and the residual Wi-Fi rate is the
 operating point of the ``tooWeak'' advisory class rather than of counted
 detections.
-
-\begin{figure}[htb!]
-  \centering
-  \includegraphics[width=0.46\columnwidth]{fig_modern_04_scans.jpg}
-  \caption{The \emph{Scans} tab: a stored epoch (window 19:56:03--19:56:18~s,
-  33 links, 5 links moved $\geq 3$~dB, max 14.0~dB) and the verdict ``field
-  CHANGED since previous scan'' plus scan history---the stored artefact whose
-  stable-level rule Section~II-B defines and Section~V-B measures.}
-  \label{fig:scans}
-\end{figure}
 
 \subsection{Two-node transit counting (G4)}
 \label{sec:transitres}
@@ -743,7 +747,7 @@ Bidirectional traffic and close-following targets were included in G4.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.72\columnwidth]{fig_modern_06_transit.jpg}
+  \includegraphics[width=0.68\columnwidth]{fig_modern_06_transit.jpg}
   \caption{The \emph{Transit} tab: a two-node barrier over Classic Bluetooth
   RFCOMM and BLE L2CAP; both a link drop and a link appearance are treated as
   evidence, and detection is reported at each separation. The rate panel is
@@ -840,17 +844,17 @@ the ordering reverses (Table~\ref{tab:vehicle_det}). Both are properties of the
 deployed platform and traffic, not of the radio model, and both argue for
 distance-conditioned rates rather than a single accuracy figure.
 
-The mesh turns a bounded single-device sensor into a collective one:
-cross-node agreement confirms events where single-link evidence is weakest and
-overlapping envelopes tile wider areas; gamification sustains the participation
-this collective sensor depends on. This campaign validates the single-device
+The mesh turns a bounded single-device sensor into a collective
+one---cross-node agreement confirms events where single-link evidence is
+weakest and overlapping envelopes tile wider areas---and gamification
+sustains the participation it depends on. This campaign validates the single-device
 stack (E1--E5) and the two-node transit counter, and bounds the
 background-operation cost on one handset and throttle regime---with the caveat
 that the meter's 15\,s epoch understates the deployment build's 10\,s duty
-cycle (Section~IV-D). The cooperative mesh (Section~II-E) is exercised only as
-a deployed interface; its confirmation performance, and gamification behaviour
-under sustained participation, require a distributed multi-node campaign left
-to future work.
+cycle (Section~IV-D). The cooperative mesh (Section~II-E) is exercised only as a deployed
+interface; its confirmation performance and gamification under sustained
+participation require a distributed multi-node campaign left to future
+work.
 
 \textbf{Threats to validity.} (1)~Single device, single site; generalisability
 unquantified. (2)~Open car park: multipath simpler than urban canyons.
@@ -879,11 +883,7 @@ silent control, and refuses range estimates where the measured signal cannot
 support them. Instrumented background legs show the duty cycle costs 82.7\,mA
 mean discharge current with the screen off, that observed link density falls
 roughly ninefold when the handset is unattended, and that no mobile traffic is
-attributable to the sensing service in any measured condition. The architecture
-supports applications from two-node pedestrian and vehicle counting to urban
-flow monitoring and emergency situational awareness.
-
-Future work targets the distributed multi-device campaign this campaign
+attributable to the sensing service in any measured condition. Future work targets the distributed multi-device campaign this campaign
 excludes (mesh confirmation and false-confirmation rates across node densities,
 gamification dynamics under sustained participation), diverse environments and
 device heterogeneity, the remaining instrumentation legs and the participant

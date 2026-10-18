@@ -84,8 +84,8 @@ future work. Detection reaches 96.7\,\% at 2\,m and halves by 16\,m;
 classification reaches 85.4\,\%; silent control yields zero BLE false positives;
 the hybrid transit fuser counts 20/20 to 15\,m. Instrumented background legs
 quantify the duty-cycle cost: 82.7\,mA mean discharge current with the screen
-off, a ninefold collapse in observed link density when the handset is
-unattended, and zero mobile traffic attributable to the sensing service in every
+off, a ninefold collapse in observed link density when unattended, and
+zero mobile traffic attributable to the sensing service in every
 measured condition.
 \end{abstract}
 
@@ -550,7 +550,7 @@ for this device. Legs for the idle floor (application stopped), a screen-off
 forced-Doze condition, battery saver, and the two-handset transit
 configuration were not run, so net-of-idle costs remain unmeasured
 (\texttt{n/m}). No usability study was run: the operator set is the author
-team and the participant study remains open, so practical crowd-deployment
+team and the participant study remains open, so crowd-deployment
 statements in Section~II remain design arguments and the measured envelope of
 Fig.~\ref{fig:field_det} applies to the measured handset and throttle regime.
 
@@ -569,7 +569,7 @@ it, so a crossing detected at these ranges is usually also correctly
 classified. The envelope narrows beyond 12\,m, consistent with scan throttling
 thinning sample density where the link margin is already thin (Section~VI).
 Table~\ref{tab:confusion} pools the labelled E2 events while
-Table~\ref{tab:det_distance} conditions the same classification on distance:
+Table~\ref{tab:det_distance} conditions the classification on distance:
 the error mass is missed claims concentrated at 8--12\,m, where dip depth
 approaches the trigger floor; direct pedestrian--vehicle confusion is rare,
 arising where a slow vehicle's wider lateral profile ($\sigma = 1.15$\,m)
@@ -652,7 +652,7 @@ transits/cell (two lanes); per-cell tallies were not preserved.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.78\columnwidth]{field_envelope.png}
+\includegraphics[width=0.74\columnwidth]{field_envelope.png}
 \caption{Field detection envelope (E1). (a)~Detection and classification probability
 versus tape-measured crossing distance ($n=60$/cell,
 Table~\ref{tab:det_distance}) with 95\,\% Wilson bands. (b)~Moving-vehicle
@@ -745,7 +745,7 @@ Bidirectional traffic and close-following targets were included in G4.
 
 \begin{figure}[htb!]
   \centering
-  \includegraphics[width=0.68\columnwidth]{fig_modern_06_transit.jpg}
+  \includegraphics[width=0.64\columnwidth]{fig_modern_06_transit.jpg}
   \caption{The \emph{Transit} tab: a two-node barrier over Classic Bluetooth
   RFCOMM and BLE L2CAP; both a link drop and a link appearance are treated as
   evidence, and detection is reported at each separation. The rate panel is
@@ -820,7 +820,7 @@ not grow measurably in any leg (the system-wide mobile counter moved by
 266{,}808\,B during B3 from unrelated processes; the per-UID counter is the
 attributable quantity).
 
-Not measured and not inferred here: the idle floor against which net-of-idle
+Not measured and not inferred: the idle floor against which net-of-idle
 cost would be quoted (leg B1), battery-saver behaviour, a forced-Doze
 screen-off condition, the two-handset transit configuration, and any usability
 or permission-burden quantity.
@@ -847,9 +847,9 @@ one---cross-node agreement confirms events where single-link evidence is
 weakest and overlapping envelopes tile wider areas---and gamification
 sustains the participation it depends on. This campaign validates the single-device
 stack (E1--E5) and the two-node transit counter, and bounds the
-background-operation cost on one handset and throttle regime---with the caveat
-that the meter's 15\,s epoch understates the deployment build's 10\,s duty
-cycle (Section~IV-D). The cooperative mesh (Section~II-E) is exercised only as a deployed
+background-operation cost on one handset and throttle regime, with the
+meter's 15\,s epoch understating the deployment build's 10\,s duty cycle
+(Section~IV-D). The cooperative mesh (Section~II-E) is exercised only as a deployed
 interface; its confirmation performance and gamification under sustained
 participation require a distributed multi-node campaign left to future
 work.
@@ -886,7 +886,7 @@ excludes (mesh confirmation and false-confirmation rates across node densities,
 gamification dynamics under sustained participation), diverse environments and
 device heterogeneity, the remaining instrumentation legs and the participant
 usability study, and device- and site-transfer of the frozen classifier; mesh
-resilience against spoofed or adversarial reports also remains untested.
+resilience against spoofed or adversarial reports remains untested.
 
 %---------------------------------------------------------------------------
 % Data availability
@@ -895,7 +895,7 @@ resilience against spoofed or adversarial reports also remains untested.
 The anonymized evaluation package (deterministic evaluation runner with fixed
 seed and SHA-256 reproducibility hash, JSON session schema, session exporter
 with per-session salted identifier hashing, instrumentation kit with the raw
-\texttt{adb} captures of legs B2, B3, and B5) is available to the reviewers
+\texttt{adb} captures of legs B2, B3, and B5) is available to reviewers
 during review upon request; session logs of protocols E1--E5 and G4, the frozen
 parameter vector, and the analysis scripts follow upon acceptance, the release
 pinning the campaign build (MeshCrowd v2.1) by hash. Helpers and annotators
